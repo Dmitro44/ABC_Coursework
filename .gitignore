@@ -4,6 +4,6 @@
 *.log
 *.nlo
 *.out
-*.syctex.gz
+*.synctex.gz
 *.toc
 *.xdv
