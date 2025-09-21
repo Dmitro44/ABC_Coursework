@@ -1,7 +1,0 @@
-\selectlanguage *[]{russian}
-\contentsline {section}{Введение}{5}{section*.1}%
-\contentsline {section}{\numberline {1}Архитектура вычислительной системы}{6}{section.0.1}%
-\contentsline {subsection}{\numberline {1.1}Структура и архитектура вычислительной системы}{6}{subsection.0.1.1}%
-\contentsline {subsection}{\numberline {1.2}История, версии и достоинтсва}{6}{subsection.0.1.2}%
-\contentsline {subsection}{\numberline {1.3}Обоснование выбора вычислительной системы}{6}{subsection.0.1.3}%
-\contentsline {subsection}{\numberline {1.4}Анализ выбранной вычислительной системы для написания программы}{6}{subsection.0.1.4}%
