@@ -16,7 +16,11 @@
     footer : context {
       set align(right)
       set text(14pt)
-      counter(page).display("1")
+      if counter(page).get().at(0) != 1 {
+        counter(page).display("1")
+      } else {
+        []
+      }
     },
     footer-descent : 10mm,
   )
@@ -43,6 +47,8 @@
     top-edge : "baseline",
 
     hyphenate : false,
+    spacing: 150%,
+    // tracking: 0.12pt,
   )
 
   set par(
@@ -75,7 +81,7 @@
 
   show heading.where(level:1): body => {
     set text(
-      size: 16pt,
+      size: 14pt,
       hyphenate : false,
     )
 
@@ -131,6 +137,7 @@
   show heading.where(level:3): body => {
     set text(
       size: 14pt,
+      hyphenate: false
     )
 
     let counter_str = if body.numbering != none {
@@ -193,7 +200,7 @@
 
   show list: a => {
     let items = a.children.map(
-      (item) => par(text(a.marker + h(0.5em) + item.body))
+      (item) => par(text(a.marker + h(0.25em) + item.body))
     )
     
     items.join()
@@ -220,6 +227,7 @@
   })
 
   show figure.where(kind: image): fig => {
+    set text(hyphenate:false)
     block(
       above : 1.55em,
       below : 2.3em,
@@ -230,6 +238,7 @@
   }
 
   show figure.where(kind: table): fig => {
+    set text(hyphenate:false)
     set block(breakable : true)
     block(
       above : 2.3em,
@@ -245,6 +254,7 @@
       set align(left)
 
       show figure.caption: b => context {
+        set text(hyphenate: false)
         let counter = counter(figure.where(kind:table)).display()
         let counter_width = measure(counter).width
         let supplement_width = measure(b.supplement + b.separator).width
@@ -304,10 +314,13 @@
 
   show outline: it => {
     show heading: body => {
-      set text(size:14pt)
+      set text(size:14pt, hyphenate:false)
       set align(center)
       block(upper(body.body), spacing : 2.3em)
     }
+    set text(
+      hyphenate: false
+    )
     it
   }
 
@@ -321,7 +334,7 @@
 
   show bibliography: it => {
     show heading : h => {
-      set text(size:14pt)
+      set text(size:14pt, hyphenate:false)
       set align(center)
 
       pagebreak(weak:true) 
@@ -434,7 +447,7 @@
 #let heading_unnumbered(body) = {
   show heading: it => {
     set align(center)
-    set text(size:14pt, weight:"semibold")
+    set text(size:14pt, weight:"semibold", hyphenate:false)
     block(upper(it.body), spacing : 2.3em)
   }
   heading(body, numbering:none)
@@ -449,7 +462,7 @@
   let aname = args.at("title")
 
   show heading: it =>  {
-    set text(size:14pt)
+    set text(size:14pt, hyphenate:false)
     set align(center)
     pagebreak(weak:true)
     block([ПРИЛОЖЕНИЕ #cnt_disp \ (#atype) \ #aname], below:2.3em)

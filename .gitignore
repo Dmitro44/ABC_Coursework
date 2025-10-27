@@ -1,0 +1,6 @@
+fft-benchmark/build/
+
+fft-benchmark/bin/
+fft-benchmark/lib/
+
+fft-benchmark/_deps/
