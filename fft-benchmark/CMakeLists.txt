@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_executable(fft_benchmark 
     src/main.cpp
-    src/fft.cpp
+    src/benchmark.cpp
 )
 
 # =============
@@ -35,7 +35,7 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(run_tests 
     tests/fft_test.cpp
-    src/fft.cpp
+    src/benchmark.cpp
 )
 
 target_link_libraries(run_tests PRIVATE gtest_main)
