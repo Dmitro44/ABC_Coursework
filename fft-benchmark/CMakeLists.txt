@@ -4,15 +4,23 @@ project(FFTBenchmark VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# =============
+# INPUT DATA GENERATOR
+# =============
+
+add_executable(generate_input
+    src/generate_input.cpp
+)
+
+# =============
+# MAIN PROGRAM
+# =============
 
 add_executable(fft_benchmark 
     src/main.cpp
     src/benchmark.cpp
 )
 
-# =============
-# MAIN PROGRAM
-# =============
 
 target_include_directories(fft_benchmark PUBLIC src)
 

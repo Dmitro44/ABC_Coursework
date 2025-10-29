@@ -1,10 +1,11 @@
 #include "benchmark.h"
 
+#include <barrier>
 #include <fstream>
 #include <iostream>
-#include <cmath>
 #include <complex>
 #include <random>
+#include <chrono>
 
 benchmark::benchmark(char filename[])
 {
@@ -28,12 +29,62 @@ benchmark::~benchmark()
 
 }
 
+void benchmark::run_single_threaded_benchmark(const string& vendor, const string& timestamp)
+{
+   string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_single.csv";
+
+   ofstream results_file_stream(filename);
+
+   if (!results_file_stream.is_open())
+   {
+      cerr << "Failed to create single results file" << filename << endl;
+      return;
+   }
+
+   results_file_stream << "Threads,Time_ms" << endl;
+
+   auto start_single = chrono::high_resolution_clock::now();
+   run_fft_single_threaded();
+   auto end_single = chrono::high_resolution_clock::now();
+   chrono::duration<double, milli> duration_single = end_single - start_single;
+   results_file_stream << "1," << duration_single.count() << endl;
+   cout << "Single-threaded FFT took " << duration_single.count() << " ms." << std::endl;
+
+   results_file_stream.close();
+}
+
+void benchmark::run_multithreaded_benchmark(const string& vendor, const string& timestamp)
+{
+   string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_multi.csv";
+
+   ofstream results_file_stream(filename);
+
+   if (!results_file_stream.is_open())
+   {
+      cerr << "Failed to create single results file" << filename << endl;
+      return;
+   }
+
+   results_file_stream << "Threads,Time_ms" << endl;
+
+   unsigned int num_cores = thread::hardware_concurrency();
+
+   auto start_multi = chrono::high_resolution_clock::now();
+   run_fft_multithreaded(num_cores);
+   auto end_multi = chrono::high_resolution_clock::now();
+   chrono::duration<double, milli> duration_multi = end_multi - start_multi;
+   results_file_stream << num_cores << "," << duration_multi.count() << endl;
+   cout << "Multi-threaded FFT with " << num_cores << " threads took " << duration_multi.count() << " ms." << std::endl;
+
+   results_file_stream.close();
+}
+
 vector<complex<double>> benchmark::run_fft_single_threaded()
 {
    vector<complex<double>> data_to_transform;
    for (const auto& real_part: input_data)
    {
-      data_to_transform.push_back(complex(real_part, 0.0));
+      data_to_transform.emplace_back(real_part, 0.0);
    }
 
    fft_iterative(data_to_transform);
@@ -46,7 +97,7 @@ vector<complex<double>> benchmark::run_fft_multithreaded(unsigned int num_cores)
    vector<complex<double>> data_to_transform;
    for (const auto& real_part: input_data)
    {
-      data_to_transform.push_back(complex(real_part, 0.0));
+      data_to_transform.emplace_back(real_part, 0.0);
    }
 
    fft_iterative_multithreaded(data_to_transform, num_cores);
@@ -169,5 +220,11 @@ void benchmark::print_data() const
    {
       cout << i << " ";
    }
+}
+
+void benchmark::write_to_file()
+{
+   ofstream output_file("../../results/raw-results/");
+
 }
 
