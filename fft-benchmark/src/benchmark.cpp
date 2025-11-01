@@ -1,108 +1,94 @@
 #include "benchmark.h"
 
 #include <barrier>
+#include <chrono>
+#include <complex>
 #include <fstream>
 #include <iostream>
-#include <complex>
 #include <random>
-#include <chrono>
+#include <thread>
+#include <vector>
 
-benchmark::benchmark(char filename[])
-{
-   ifstream input_file(filename);
+// Define the input sizes to be benchmarked
+const std::vector<int> INPUT_SIZES = {32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384,
+                                       32768, 65536, 131072, 262144, 524288, 1048576};
 
-   if (!input_file.is_open())
-   {
-      cerr << "Failed to open file " << filename << std::endl;
-   }
+benchmark::benchmark() = default;
 
-   double number;
+benchmark::~benchmark() = default;
 
-   while (input_file >> number)
-   {
-      input_data.push_back(number);
-   }
+void benchmark::run_single_threaded_benchmark(const string &vendor, const string &timestamp) {
+  string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_single.csv";
+  ofstream results_file_stream(filename);
+
+  if (!results_file_stream.is_open()) {
+    cerr << "Failed to create single results file: " << filename << endl;
+    return;
+  }
+
+  results_file_stream << "Input_Size,Time_ms" << endl;
+  cout << "Running single-threaded benchmark..." << endl;
+
+  for (int size : INPUT_SIZES) {
+    // Generate random data
+    vector<complex<double>> data;
+    data.reserve(size);
+    std::mt19937 gen(1234); // Fixed seed for reproducibility
+    std::uniform_real_distribution<> dis(-1000.0, 1000.0);
+    for (int i = 0; i < size; ++i) {
+      data.emplace_back(dis(gen), 0.0);
+    }
+
+    // Run and measure
+    auto start = chrono::high_resolution_clock::now();
+    fft_iterative(data);
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double, milli> duration = end - start;
+
+    results_file_stream << size << "," << duration.count() << endl;
+    cout << "  Input size " << size << ": " << duration.count() << " ms"
+         << endl;
+  }
+
+  results_file_stream.close();
+  cout << "Single-threaded benchmark finished. Results saved to " << filename << endl;
 }
 
-benchmark::~benchmark()
-{
+void benchmark::run_multithreaded_benchmark(const string &vendor, const string &timestamp) {
+  string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_multi.csv";
+  ofstream results_file_stream(filename);
 
-}
+  if (!results_file_stream.is_open()) {
+    cerr << "Failed to create multi results file: " << filename << endl;
+    return;
+  }
 
-void benchmark::run_single_threaded_benchmark(const string& vendor, const string& timestamp)
-{
-   string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_single.csv";
+  unsigned int num_cores = thread::hardware_concurrency();
+  results_file_stream << "Input_Size,Time_ms" << endl;
+  cout << "Running multi-threaded benchmark with " << num_cores << " threads..." << endl;
 
-   ofstream results_file_stream(filename);
+  for (int size : INPUT_SIZES) {
+    // Generate random data
+    vector<complex<double>> data;
+    data.reserve(size);
+    std::mt19937 gen(1234); // Fixed seed for reproducibility
+    std::uniform_real_distribution<> dis(-1000.0, 1000.0);
+    for (int i = 0; i < size; ++i) {
+      data.emplace_back(dis(gen), 0.0);
+    }
 
-   if (!results_file_stream.is_open())
-   {
-      cerr << "Failed to create single results file" << filename << endl;
-      return;
-   }
+    // Run and measure
+    auto start = chrono::high_resolution_clock::now();
+    fft_iterative_multithreaded(data, num_cores);
+    auto end = chrono::high_resolution_clock::now();
+    chrono::duration<double, milli> duration = end - start;
 
-   results_file_stream << "Threads,Time_ms" << endl;
+    results_file_stream << size << "," << duration.count() << endl;
+    cout << "  Input size " << size << ": " << duration.count() << " ms" << endl;
+  }
 
-   auto start_single = chrono::high_resolution_clock::now();
-   run_fft_single_threaded();
-   auto end_single = chrono::high_resolution_clock::now();
-   chrono::duration<double, milli> duration_single = end_single - start_single;
-   results_file_stream << "1," << duration_single.count() << endl;
-   cout << "Single-threaded FFT took " << duration_single.count() << " ms." << std::endl;
-
-   results_file_stream.close();
-}
-
-void benchmark::run_multithreaded_benchmark(const string& vendor, const string& timestamp)
-{
-   string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_multi.csv";
-
-   ofstream results_file_stream(filename);
-
-   if (!results_file_stream.is_open())
-   {
-      cerr << "Failed to create single results file" << filename << endl;
-      return;
-   }
-
-   results_file_stream << "Threads,Time_ms" << endl;
-
-   unsigned int num_cores = thread::hardware_concurrency();
-
-   auto start_multi = chrono::high_resolution_clock::now();
-   run_fft_multithreaded(num_cores);
-   auto end_multi = chrono::high_resolution_clock::now();
-   chrono::duration<double, milli> duration_multi = end_multi - start_multi;
-   results_file_stream << num_cores << "," << duration_multi.count() << endl;
-   cout << "Multi-threaded FFT with " << num_cores << " threads took " << duration_multi.count() << " ms." << std::endl;
-
-   results_file_stream.close();
-}
-
-vector<complex<double>> benchmark::run_fft_single_threaded()
-{
-   vector<complex<double>> data_to_transform;
-   for (const auto& real_part: input_data)
-   {
-      data_to_transform.emplace_back(real_part, 0.0);
-   }
-
-   fft_iterative(data_to_transform);
-
-   return data_to_transform;
-}
-
-vector<complex<double>> benchmark::run_fft_multithreaded(unsigned int num_cores)
-{
-   vector<complex<double>> data_to_transform;
-   for (const auto& real_part: input_data)
-   {
-      data_to_transform.emplace_back(real_part, 0.0);
-   }
-
-   fft_iterative_multithreaded(data_to_transform, num_cores);
-
-   return data_to_transform;
+  results_file_stream.close();
+  cout << "Multi-threaded benchmark finished. Results saved to " << filename << endl;
 }
 
 
@@ -213,18 +199,3 @@ void benchmark::fft_iterative_multithreaded(vector<complex<double>>& data, unsig
       thread.join();
    }
 }
-
-void benchmark::print_data() const
-{
-   for (const double i : input_data)
-   {
-      cout << i << " ";
-   }
-}
-
-void benchmark::write_to_file()
-{
-   ofstream output_file("../../results/raw-results/");
-
-}
-

@@ -24,12 +24,7 @@ string get_cpu_vendor() {
     return "unknown";
 }
 
-int main (int argc, char *argv[]) {
-    if (argc <= 1) {
-        cerr << "Usage: " << argv[0] << " <input_file>" << std::endl;
-        return 1;
-    }
-
+int main() {
     // 1. Get CPU vendor
     string cpu_vendor = get_cpu_vendor();
 
@@ -40,7 +35,7 @@ int main (int argc, char *argv[]) {
     ss << put_time(std::localtime(&in_time_t), "%d%m%Y_%H%M%S");
     string timestamp = ss.str();
 
-    benchmark bench(argv[1]);
+    benchmark bench;
 
     bench.run_single_threaded_benchmark(cpu_vendor, timestamp);
 

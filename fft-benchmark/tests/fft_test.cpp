@@ -25,7 +25,7 @@ TEST(SinglethreadedFftResultShouldBeCorrect, BasicAssertions)
 
 TEST(MultithreadedFftResultShouldBeCorrect, BasicAssertions)
 {
-    benchmark bench("../input_data/input.txt");
+    benchmark bench("../input_data/input_262144.txt");
 
     auto expected_result = bench.run_fft_single_threaded();
 
