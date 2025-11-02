@@ -4,3 +4,5 @@ fft-benchmark/bin/
 fft-benchmark/lib/
 
 fft-benchmark/_deps/
+
+fft-benchmark/.idea/
