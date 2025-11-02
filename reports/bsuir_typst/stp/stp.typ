@@ -47,9 +47,14 @@
     top-edge : "baseline",
 
     hyphenate : false,
-    spacing: 150%,
+    spacing: 110%,
     // tracking: 0.12pt,
   )
+
+  show emph: it => {
+    set text(spacing: 100%)
+    it
+  } 
 
   set par(
     // п. 2.1.1 : Отступ.
@@ -81,8 +86,12 @@
 
   show heading.where(level:1): body => {
     set text(
-      size: 14pt,
+      size: 16pt,
       hyphenate : false,
+    )
+
+    set par(
+      justify: false
     )
 
     let number_width = measure(counter(heading).display()).width + 0.1em;
@@ -113,6 +122,10 @@
     set text(
       size: 14pt,
       hyphenate : false,
+    )
+
+    set par(
+      justify: false
     )
 
     let number_width = measure(counter(heading).display()).width + 0.1em;
@@ -187,10 +200,10 @@
 
   show enum: a => {
     let items = a.children.enumerate().map(
-      ((index,item)) => par(
-        numbering(a.numbering, index+1) + h(0.25em) + item.body)
+      ((index,item)) =>
+        numbering(a.numbering, index+1) + h(0.25em) + item.body + parbreak()
     )
-    items.join()
+    parbreak()+items.join()
   }
 
   set list(
@@ -200,10 +213,10 @@
 
   show list: a => {
     let items = a.children.map(
-      (item) => par(text(a.marker + h(0.25em) + item.body))
+      (item) => a.marker + h(0.25em) + item.body + parbreak()
     )
     
-    items.join()
+    parbreak() + items.join()
   }
 
 
@@ -254,7 +267,7 @@
       set align(left)
 
       show figure.caption: b => context {
-        set text(hyphenate: false)
+        set text(hyphenate: false, spacing: 100%)
         let counter = counter(figure.where(kind:table)).display()
         let counter_width = measure(counter).width
         let supplement_width = measure(b.supplement + b.separator).width
@@ -314,7 +327,7 @@
 
   show outline: it => {
     show heading: body => {
-      set text(size:14pt, hyphenate:false)
+      set text(size:16pt, hyphenate:false)
       set align(center)
       block(upper(body.body), spacing : 2.3em)
     }
@@ -334,7 +347,7 @@
 
   show bibliography: it => {
     show heading : h => {
-      set text(size:14pt, hyphenate:false)
+      set text(size:16pt, hyphenate:false)
       set align(center)
 
       pagebreak(weak:true) 
@@ -367,9 +380,9 @@
   // Предполагаем, что по аналогии с пунктом 2.7.2 
   // о приложениях
   let items = a.pos().enumerate().map(
-    ((idx,item)) => par(ru_alph.at(idx) + ")" + h(0.5em) + item)
+    ((idx,item)) => ru_alph.at(idx) + ")" + h(0.5em) + item + parbreak()
   )
-  items.join()
+  parbreak()+items.join()
 }
 
 #let explanation(..args) = context {
@@ -381,10 +394,11 @@
     [где],
 
     grid(
-      columns : (auto, 1fr),
+      columns : (auto, 0.15em, 1fr),
+      align: (left, center, left),
       rows : auto,
       column-gutter : 0.5em,
-      row-gutter:1.15em,
+      row-gutter: 1.15em,
       ..args
     )
   )
@@ -447,7 +461,7 @@
 #let heading_unnumbered(body) = {
   show heading: it => {
     set align(center)
-    set text(size:14pt, weight:"semibold", hyphenate:false)
+    set text(size:16pt, weight:"semibold", hyphenate:false)
     block(upper(it.body), spacing : 2.3em)
   }
   heading(body, numbering:none)
