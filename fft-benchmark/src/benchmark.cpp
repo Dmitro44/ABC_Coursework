@@ -19,9 +19,9 @@ benchmark::benchmark() = default;
 
 benchmark::~benchmark() = default;
 
-void benchmark::run_single_threaded_benchmark(const string& vendor, const string& timestamp)
+void benchmark::run_single_threaded_benchmark(const string& vendor, const string& timestamp, const string& smt)
 {
-    string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_single.csv";
+    string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_single_" + smt + ".csv";
     ofstream results_file_stream(filename);
 
     if (!results_file_stream.is_open())
@@ -60,9 +60,9 @@ void benchmark::run_single_threaded_benchmark(const string& vendor, const string
     cout << "Single-threaded benchmark finished. Results saved to " << filename << endl;
 }
 
-void benchmark::run_multithreaded_benchmark(const string& vendor, const string& timestamp)
+void benchmark::run_multithreaded_benchmark(const string& vendor, const string& timestamp, const string& smt)
 {
-    string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_multi.csv";
+    string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_multi_" + smt + ".csv";
     ofstream results_file_stream(filename);
 
     if (!results_file_stream.is_open())

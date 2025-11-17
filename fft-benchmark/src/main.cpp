@@ -30,6 +30,28 @@ string get_cpu_vendor()
     return "unknown";
 }
 
+string get_smt_status()
+{
+    ifstream smt_info("/sys/devices/system/cpu/smt/control");
+    string line;
+    if (smt_info.is_open())
+    {
+        while (getline(smt_info, line))
+        {
+            if (line.find("on") != string::npos)
+            {
+                return "smt_on";
+            }
+
+            if (line.find("off") != string::npos)
+            {
+                return "smt_off";
+            }
+        }
+    }
+    return "unknown";
+}
+
 int main()
 {
     // 1. Get CPU vendor
@@ -42,11 +64,14 @@ int main()
     ss << put_time(std::localtime(&in_time_t), "%d%m%Y_%H%M%S");
     string timestamp = ss.str();
 
+    // 3. Get SMT status
+    string smt_status = get_smt_status();
+
     benchmark bench;
 
-    bench.run_single_threaded_benchmark(cpu_vendor, timestamp);
+    bench.run_single_threaded_benchmark(cpu_vendor, timestamp, smt_status);
 
-    bench.run_multithreaded_benchmark(cpu_vendor, timestamp);
+    bench.run_multithreaded_benchmark(cpu_vendor, timestamp, smt_status);
 
     return 0;
 }
