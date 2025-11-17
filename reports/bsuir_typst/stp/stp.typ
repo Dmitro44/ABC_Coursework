@@ -476,7 +476,7 @@
   let aname = args.at("title")
 
   show heading: it =>  {
-    set text(size:14pt, hyphenate:false)
+    set text(size:16pt, hyphenate:false)
     set align(center)
     pagebreak(weak:true)
     block([ПРИЛОЖЕНИЕ #cnt_disp \ (#atype) \ #aname], below:2.3em)
