@@ -6,16 +6,22 @@
 #include <iomanip>
 
 // Function to get CPU vendor from /proc/cpuinfo
-string get_cpu_vendor() {
+string get_cpu_vendor()
+{
     ifstream cpu_info("/proc/cpuinfo");
     string line;
-    if (cpu_info.is_open()) {
-        while (getline(cpu_info, line)) {
-            if (line.find("vendor_id") != string::npos) {
-                if (line.find("AuthenticAMD") != string::npos) {
+    if (cpu_info.is_open())
+    {
+        while (getline(cpu_info, line))
+        {
+            if (line.find("vendor_id") != string::npos)
+            {
+                if (line.find("AuthenticAMD") != string::npos)
+                {
                     return "amd";
                 }
-                if (line.find("GenuineIntel") != string::npos) {
+                if (line.find("GenuineIntel") != string::npos)
+                {
                     return "intel";
                 }
             }
@@ -24,7 +30,8 @@ string get_cpu_vendor() {
     return "unknown";
 }
 
-int main() {
+int main()
+{
     // 1. Get CPU vendor
     string cpu_vendor = get_cpu_vendor();
 
