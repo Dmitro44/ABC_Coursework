@@ -3,24 +3,24 @@
 
 TEST(SinglethreadedFftResultShouldBeCorrect, BasicAssertions)
 {
-   benchmark bench("../input_data/test_input.txt");
+    benchmark bench("../input_data/test_input.txt");
 
-   auto result = bench.run_fft_single_threaded();
+    auto result = bench.run_fft_single_threaded();
 
-   std::vector<std::complex<double>> expected_result = {
-       {1.0, 0.0},
-       {1.0, 0.0},
-       {1.0, 0.0},
-       {1.0, 0.0}
-   };
+    std::vector<std::complex<double>> expected_result = {
+        {1.0, 0.0},
+        {1.0, 0.0},
+        {1.0, 0.0},
+        {1.0, 0.0}
+    };
 
-   ASSERT_EQ(result.size(), expected_result.size());
+    ASSERT_EQ(result.size(), expected_result.size());
 
-   for (size_t i = 0; i < result.size(); ++i)
-   {
-      EXPECT_NEAR(result[i].real(), expected_result[i].real(), 1e-9);
-      EXPECT_NEAR(result[i].imag(), expected_result[i].imag(), 1e-9);
-   }
+    for (size_t i = 0; i < result.size(); ++i)
+    {
+        EXPECT_NEAR(result[i].real(), expected_result[i].real(), 1e-9);
+        EXPECT_NEAR(result[i].imag(), expected_result[i].imag(), 1e-9);
+    }
 }
 
 TEST(MultithreadedFftResultShouldBeCorrect, BasicAssertions)
