@@ -60,7 +60,7 @@ void benchmark::run_single_threaded_benchmark(const string& vendor, const string
     cout << "Single-threaded benchmark finished. Results saved to " << filename << endl;
 }
 
-void benchmark::run_multithreaded_benchmark(const string& vendor, const string& timestamp, const string& smt)
+void benchmark::run_multithreaded_benchmark(const string& vendor, const string& timestamp, const string& smt, unsigned int num_threads)
 {
     string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_multi_" + smt + ".csv";
     ofstream results_file_stream(filename);
@@ -71,9 +71,8 @@ void benchmark::run_multithreaded_benchmark(const string& vendor, const string& 
         return;
     }
 
-    unsigned int num_cores = thread::hardware_concurrency();
     results_file_stream << "Input_Size,Time_ms" << endl;
-    cout << "Running multi-threaded benchmark with " << num_cores << " threads..." << endl;
+    cout << "Running multi-threaded benchmark with " << num_threads << " threads..." << endl;
 
     for (int size : INPUT_SIZES)
     {
@@ -89,7 +88,7 @@ void benchmark::run_multithreaded_benchmark(const string& vendor, const string& 
 
         // Run and measure
         auto start = chrono::high_resolution_clock::now();
-        fft_iterative_multithreaded(data, num_cores);
+        fft_iterative_multithreaded(data, num_threads);
         auto end = chrono::high_resolution_clock::now();
         chrono::duration<double, milli> duration = end - start;
 

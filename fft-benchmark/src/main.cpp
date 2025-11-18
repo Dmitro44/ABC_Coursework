@@ -4,6 +4,7 @@
 #include <string>
 #include <chrono>
 #include <iomanip>
+#include <thread>
 
 // Function to get CPU vendor from /proc/cpuinfo
 string get_cpu_vendor()
@@ -52,8 +53,37 @@ string get_smt_status()
     return "unknown";
 }
 
-int main()
+int main(int argc, char* argv[])
 {
+    string mode;
+    unsigned int num_threads = 0;
+
+    for (int i = 1; i < argc; ++i)
+    {
+        string arg = argv[i];
+        if (arg == "--mode" && i + 1 < argc)
+        {
+            mode = argv[++i];
+        }
+        else if (arg == "--threads" && i + 1 < argc)
+        {
+            try
+            {
+               num_threads = stoul(argv[++i]);
+            } catch (const std::invalid_argument& ia)
+            {
+                cerr << "Error: Invalid number for --threads" << endl;
+                return 1;
+            }
+        }
+    }
+
+    if (mode.empty())
+    {
+        cerr << "Error: Please provide a mode with --mode [single|multi]" << endl;
+        return 1;
+    }
+
     // 1. Get CPU vendor
     string cpu_vendor = get_cpu_vendor();
 
@@ -69,9 +99,18 @@ int main()
 
     benchmark bench;
 
-    bench.run_single_threaded_benchmark(cpu_vendor, timestamp, smt_status);
-
-    bench.run_multithreaded_benchmark(cpu_vendor, timestamp, smt_status);
+    if (mode == "single")
+    {
+        bench.run_single_threaded_benchmark(cpu_vendor, timestamp, smt_status);
+    }
+    else if (mode == "multi")
+    {
+        if (num_threads == 0)
+        {
+            num_threads = std::thread::hardware_concurrency();
+        }
+        bench.run_multithreaded_benchmark(cpu_vendor, timestamp, smt_status, num_threads);
+    }
 
     return 0;
 }
