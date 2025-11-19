@@ -12,7 +12,7 @@
 // Define the input sizes to be benchmarked
 const std::vector<int> INPUT_SIZES = {
     32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384,
-    32768, 65536, 131072, 262144, 524288, 1048576
+    32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216
 };
 
 benchmark::benchmark() = default;
@@ -62,7 +62,7 @@ void benchmark::run_single_threaded_benchmark(const string& vendor, const string
 
 void benchmark::run_multithreaded_benchmark(const string& vendor, const string& timestamp, const string& smt, unsigned int num_threads)
 {
-    string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_multi_" + smt + ".csv";
+    string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_multi_" + to_string(num_threads) + "threads_" + smt + ".csv";
     ofstream results_file_stream(filename);
 
     if (!results_file_stream.is_open())

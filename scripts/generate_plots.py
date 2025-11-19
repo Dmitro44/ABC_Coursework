@@ -27,48 +27,64 @@ def generate_plots():
     latest_timestamp = ""
     file_info = {}
 
-    # Regex to parse filenames
-    file_pattern = re.compile(r'results_(amd|intel)_(\d{8}_\d{6})_(single|multi)\.csv')
+    # Regex to parse filenames with SMT status
+    file_pattern = re.compile(r'results_(amd|intel)_(\d{8}_\d{6})_(single|multi)_(smt_on|smt_off)\.csv')
 
     for f_path in csv_files:
         basename = os.path.basename(f_path)
         match = file_pattern.match(basename)
         if match:
-            vendor, timestamp, mode = match.groups()
+            vendor, timestamp, mode, smt = match.groups()
             if timestamp > latest_timestamp:
                 latest_timestamp = timestamp
-            file_info[f_path] = {'vendor': vendor, 'timestamp': timestamp, 'mode': mode}
+            file_info[f_path] = {'vendor': vendor, 'timestamp': timestamp, 'mode': mode, 'smt': smt}
 
     if not latest_timestamp:
         print("Could not find any result files with the expected naming convention.")
-        print("Expected format: results_{vendor}_{timestamp}_{mode}.csv")
+        print("Expected format: results_{vendor}_{timestamp}_{mode}_{smt_status}.csv")
         return
 
     print(f"Found latest results from timestamp: {latest_timestamp}")
 
     # --- 4. Identify latest files and load data ---
-    latest_files = {info['mode']: f for f, info in file_info.items() if info['timestamp'] == latest_timestamp}
+    latest_files = {}
+    for f, info in file_info.items():
+        if info['timestamp'] == latest_timestamp:
+            key = (info['mode'], info['smt'])
+            latest_files[key] = f
 
-    if 'single' not in latest_files or 'multi' not in latest_files:
-        print(f"Error: Missing single or multi-threaded result file for timestamp {latest_timestamp}.")
+    required_keys = [
+        ('single', 'smt_on'), ('single', 'smt_off'),
+        ('multi', 'smt_on'), ('multi', 'smt_off')
+    ]
+    if not all(key in latest_files for key in required_keys):
+        print(f"Error: Missing one or more result files for timestamp {latest_timestamp}.")
+        missing = [key for key in required_keys if key not in latest_files]
+        print(f"Missing data for: {missing}")
         return
 
     try:
-        df_single = pd.read_csv(latest_files['single'])
-        df_multi = pd.read_csv(latest_files['multi'])
-        vendor = file_info[latest_files['single']]['vendor']
+        df_single_on = pd.read_csv(latest_files[('single', 'smt_on')])
+        df_single_off = pd.read_csv(latest_files[('single', 'smt_off')])
+        df_multi_on = pd.read_csv(latest_files[('multi', 'smt_on')])
+        df_multi_off = pd.read_csv(latest_files[('multi', 'smt_off')])
+        vendor = file_info[latest_files[('single', 'smt_on')]]['vendor']
     except Exception as e:
         print(f"Error reading CSV files: {e}")
         return
 
-    print(f"Loaded single-threaded data: {os.path.basename(latest_files['single'])}")
-    print(f"Loaded multi-threaded data: {os.path.basename(latest_files['multi'])}")
+    print(f"Loaded single-threaded (SMT ON) data: {os.path.basename(latest_files[('single', 'smt_on')])}")
+    print(f"Loaded single-threaded (SMT OFF) data: {os.path.basename(latest_files[('single', 'smt_off')])}")
+    print(f"Loaded multi-threaded (SMT ON) data: {os.path.basename(latest_files[('multi', 'smt_on')])}")
+    print(f"Loaded multi-threaded (SMT OFF) data: {os.path.basename(latest_files[('multi', 'smt_off')])}")
 
     # --- 5. Generate Plot ---
     plt.figure(figsize=(12, 8))
 
-    plt.plot(df_single['Input_Size'], df_single['Time_ms'], marker='o', linestyle='-', label='Single-Threaded')
-    plt.plot(df_multi['Input_Size'], df_multi['Time_ms'], marker='s', linestyle='-', label='Multi-Threaded')
+    plt.plot(df_single_on['Input_Size'], df_single_on['Time_ms'], marker='o', linestyle='-', label='Single-Threaded (SMT ON)')
+    plt.plot(df_single_off['Input_Size'], df_single_off['Time_ms'], marker='o', linestyle='--', label='Single-Threaded (SMT OFF)')
+    plt.plot(df_multi_on['Input_Size'], df_multi_on['Time_ms'], marker='s', linestyle='-', label='Multi-Threaded (SMT ON)')
+    plt.plot(df_multi_off['Input_Size'], df_multi_off['Time_ms'], marker='s', linestyle='--', label='Multi-Threaded (SMT OFF)')
 
     plt.xscale('log', base=2)
     plt.yscale('log')

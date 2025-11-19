@@ -1,4 +1,6 @@
 fft-benchmark/build/
+fft-benchmark/cmake-build-debug
+fft-benchmark/cmake-build-release
 
 fft-benchmark/bin/
 fft-benchmark/lib/
