@@ -43,11 +43,12 @@ jobs:
         with:
           commit_message: "Auto: update results and plots (${{ env.CPU_TYPE }})"
           # Specify the branch to commit to
-          branch: results-auto
+          branch: results-plots-auto
           # Specify the file patterns to commit
           file_pattern: |
+            results/perf_results/*.csv
             results/raw_results/*.csv
             results/plots/*.png
           # Options to ensure the push succeeds to a different branch
           repository: .
-          push_options: '--force'
+          push_options: "--force"
