@@ -4,9 +4,8 @@
 set -e
 
 # --- Thread Configuration ---
-# Use the first script argument as thread count, or default to all available cores
-NUM_THREADS=${1:-$(nproc)}
-echo "Multi-threaded benchmark will run with $NUM_THREADS threads."
+# The first argument is a space-separated string of thread counts to test, e.g., "2 4 8 16"
+THREAD_LIST=${1:-""}
 
 # --- CPU Vendor Detection ---
 echo "Detecting CPU vendor..."
@@ -29,36 +28,22 @@ if [ -n "$OPT_FLAGS" ]; then
     echo "Using optimization flags: $OPT_FLAGS"
 fi
 
-# --- SMT Detection ---
-echo "Detecting SMT status..."
-SMT_STATUS="smt_unknown"
-if [ -f /sys/devices/system/cpu/smt/control ]; then
-    if grep -q "on" /sys/devices/system/cpu/smt/control; then
-        SMT_STATUS="smt_on"
-    elif grep -q "off" /sys/devices/system/cpu/smt/control; then
-        SMT_STATUS="smt_off"
-    fi
-fi
-echo "SMT status: $SMT_STATUS"
-
-
 # --- Build Configuration ---
 BASE_DIR=$(dirname "$(dirname "$(readlink -f "$0")")")
 
-# --- Build Configuration ---
 BUILD_DIR="$BASE_DIR/fft-benchmark/cmake-build-release"
 SOURCE_DIR="$BASE_DIR/fft-benchmark"
 EXECUTABLE_PATH="$BUILD_DIR/fft_benchmark"
 
 # --- Results Configuration ---
-PERF_RESULTS_DIR="$BASE_DIR/results/perf_results"
 TIMESTAMP=$(date +"%d%m%Y_%H%M%S")
-PERF_EVENTS="cycles,instructions,cache-references,cache-misses,branch-instructions,branch-misses,dTLB-load-misses"
+RAW_OUTPUT_ROOT_DIR="$BASE_DIR/results/raw_results/${TIMESTAMP}_${CPU_VENDOR}"
+PERF_OUTPUT_ROOT_DIR="$BASE_DIR/results/perf_results/${TIMESTAMP}_${CPU_VENDOR}"
+PERF_EVENTS="cycles,instructions,cache-references,cache-misses,branch-instructions,branch-misses"
 
 # --- Build Project ---
 echo "Ensuring project is built..."
 mkdir -p "$BUILD_DIR"
-mkdir -p "$PERF_RESULTS_DIR"
 
 # Only re-configure if CMakeCache.txt is missing, to allow for incremental builds
 if [ ! -f "$BUILD_DIR/CMakeCache.txt" ]; then
@@ -72,35 +57,60 @@ echo "Building project (will skip if no changes)..."
 cmake --build "$BUILD_DIR" --config Release -j $(nproc)
 echo "Build complete."
 
-# --- Run Benchmarks with Perf ---
+# --- Run Benchmarks ---
 
-# Navigate to the build directory for benchmark execution
-pushd "$BUILD_DIR" > /dev/null
+# Create the output directories for this run
+mkdir -p "$RAW_OUTPUT_ROOT_DIR"
+mkdir -p "$PERF_OUTPUT_ROOT_DIR"
+echo "Raw results for this run will be saved to: $RAW_OUTPUT_ROOT_DIR"
+echo "Perf results for this run will be saved to: $PERF_OUTPUT_ROOT_DIR"
 
-# 1. Single-threaded benchmark
-echo "----------------------------------------"
-echo "Running single-threaded benchmark with perf..."
-PERF_SINGLE_FILE="${PERF_RESULTS_DIR}/perf_${CPU_VENDOR}_${TIMESTAMP}_single_${SMT_STATUS}.csv"
-echo "Perf results will be saved to: $PERF_SINGLE_FILE"
+# Function to run a set of benchmarks for a given SMT state
+run_benchmark_set() {
+    local SMT_STATE=$1
+    local CURRENT_NPROC=$(nproc)
+    echo "----------------------------------------"
+    echo "Running benchmarks with SMT: $SMT_STATE (Available logical cores: $CURRENT_NPROC)"
 
-perf stat -e "$PERF_EVENTS" -o "$PERF_SINGLE_FILE" -x, \
-    "$EXECUTABLE_PATH" --mode single
+    # Single-threaded benchmark (always runs)
+    local RAW_FILE_SINGLE="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_single_${SMT_STATE}.csv"
+    local PERF_FILE_SINGLE="$PERF_OUTPUT_ROOT_DIR/perf_${CPU_VENDOR}_single_${SMT_STATE}.csv"
+    echo "Running single-threaded benchmark..."
+    perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_SINGLE" -x, \
+        "$EXECUTABLE_PATH" --mode single --output-file "$RAW_FILE_SINGLE"
 
-echo "Single-threaded benchmark finished."
-echo "----------------------------------------"
+    # Multi-threaded benchmarks (run if a thread list was provided)
+    if [ -n "$THREAD_LIST" ]; then
+        echo "Running multi-threaded benchmarks for thread counts: $THREAD_LIST"
+        for NUM_THREADS in $THREAD_LIST; do
+            if [ "$NUM_THREADS" -gt "$CURRENT_NPROC" ]; then
+                echo "--- Skipping $NUM_THREADS threads (requested > available $CURRENT_NPROC cores) ---"
+                continue
+            fi
 
-# 2. Multi-threaded benchmark
-echo "Running multi-threaded benchmark with perf ($NUM_THREADS threads)..."
-PERF_MULTI_FILE="${PERF_RESULTS_DIR}/perf_${CPU_VENDOR}_${TIMESTAMP}_multi_${NUM_THREADS}threads_${SMT_STATUS}.csv"
-echo "Perf results will be saved to: $PERF_MULTI_FILE"
+            local RAW_FILE_MULTI="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_multi_${NUM_THREADS}threads_${SMT_STATE}.csv"
+            local PERF_FILE_MULTI="$PERF_OUTPUT_ROOT_DIR/perf_${CPU_VENDOR}_multi_${NUM_THREADS}threads_${SMT_STATE}.csv"
+            echo "--- Running for $NUM_THREADS threads ---"
+            perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_MULTI" -x, \
+                "$EXECUTABLE_PATH" --mode multi --threads "$NUM_THREADS" --output-file "$RAW_FILE_MULTI"
+        done
+    else
+        echo "No thread list provided, skipping multi-threaded benchmarks."
+    fi
+}
 
-perf stat -e "$PERF_EVENTS" -o "$PERF_MULTI_FILE" -x, \
-    "$EXECUTABLE_PATH" --mode multi --threads "$NUM_THREADS"
+# --- Run with SMT ON ---
+echo "Ensuring SMT is ON for benchmarks..."
+sudo sh -c "echo on > /sys/devices/system/cpu/smt/control"
+run_benchmark_set "smt_on"
 
-echo "Multi-threaded benchmark finished."
-echo "----------------------------------------"
+# --- Run with SMT OFF ---
+echo "Disabling SMT for benchmarks..."
+sudo sh -c "echo off > /sys/devices/system/cpu/smt/control"
+run_benchmark_set "smt_off"
 
-# Return to the original directory
-popd > /dev/null
+# --- Re-enable SMT ---
+echo "Re-enabling SMT..."
+sudo sh -c "echo on > /sys/devices/system/cpu/smt/control"
 
 echo "All benchmarks finished."

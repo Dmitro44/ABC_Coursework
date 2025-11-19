@@ -19,14 +19,13 @@ benchmark::benchmark() = default;
 
 benchmark::~benchmark() = default;
 
-void benchmark::run_single_threaded_benchmark(const string& vendor, const string& timestamp, const string& smt)
+void benchmark::run_single_threaded_benchmark(const string& output_file_path)
 {
-    string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_single_" + smt + ".csv";
-    ofstream results_file_stream(filename);
+    ofstream results_file_stream(output_file_path);
 
     if (!results_file_stream.is_open())
     {
-        cerr << "Failed to create single results file: " << filename << endl;
+        cerr << "Failed to create single results file: " << output_file_path << endl;
         return;
     }
 
@@ -57,17 +56,16 @@ void benchmark::run_single_threaded_benchmark(const string& vendor, const string
     }
 
     results_file_stream.close();
-    cout << "Single-threaded benchmark finished. Results saved to " << filename << endl;
+    cout << "Single-threaded benchmark finished. Results saved to " << output_file_path << endl;
 }
 
-void benchmark::run_multithreaded_benchmark(const string& vendor, const string& timestamp, const string& smt, unsigned int num_threads)
+void benchmark::run_multithreaded_benchmark(const string& output_file_path, unsigned int num_threads)
 {
-    string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_multi_" + to_string(num_threads) + "threads_" + smt + ".csv";
-    ofstream results_file_stream(filename);
+    ofstream results_file_stream(output_file_path);
 
     if (!results_file_stream.is_open())
     {
-        cerr << "Failed to create multi results file: " << filename << endl;
+        cerr << "Failed to create multi results file: " << output_file_path << endl;
         return;
     }
 
@@ -97,8 +95,9 @@ void benchmark::run_multithreaded_benchmark(const string& vendor, const string& 
     }
 
     results_file_stream.close();
-    cout << "Multi-threaded benchmark finished. Results saved to " << filename << endl;
+    cout << "Multi-threaded benchmark finished. Results saved to " << output_file_path << endl;
 }
+
 
 
 unsigned int benchmark::reverse_bits(unsigned int n, unsigned int bits)
