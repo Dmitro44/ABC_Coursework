@@ -1,0 +1,9 @@
+# started on Wed Nov 19 14:15:08 2025
+
+58805230481,,cycles:u,14078107838,71.00,,
+21690467559,,instructions:u,14056803684,71.00,0.37,insn per cycle
+442675763,,cache-references:u,14052616402,71.00,,
+97864925,,cache-misses:u,14065131442,71.00,22.11,of all cache refs
+2356054115,,branch-instructions:u,14078452611,71.00,,
+3473451,,branch-misses:u,14078836611,71.00,0.15,of all branches
+36983,,dTLB-load-misses:u,14082705157,71.00,,

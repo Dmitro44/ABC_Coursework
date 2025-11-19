@@ -1,0 +1,9 @@
+# started on Wed Nov 19 14:16:26 2025
+
+10425150308,,cycles:u,2323689688,71.00,,
+20329369748,,instructions:u,2321961839,71.00,1.95,insn per cycle
+488094814,,cache-references:u,2322109495,71.00,,
+37601648,,cache-misses:u,2322495609,71.00,7.70,of all cache refs
+2414075437,,branch-instructions:u,2321953874,71.00,,
+3217593,,branch-misses:u,2315706576,71.00,0.13,of all branches
+3184,,dTLB-load-misses:u,2318413299,71.00,,
