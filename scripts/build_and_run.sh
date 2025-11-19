@@ -43,30 +43,39 @@ echo "SMT status: $SMT_STATUS"
 
 
 # --- Build Configuration ---
-BUILD_DIR="fft-benchmark/cmake-build-release"
-SOURCE_DIR="fft-benchmark"
+BASE_DIR=$(dirname "$(dirname "$(readlink -f "$0")")")
+
+# --- Build Configuration ---
+BUILD_DIR="$BASE_DIR/fft-benchmark/cmake-build-release"
+SOURCE_DIR="$BASE_DIR/fft-benchmark"
 EXECUTABLE_PATH="$BUILD_DIR/fft_benchmark"
 
 # --- Results Configuration ---
-PERF_RESULTS_DIR="results/perf_results"
+PERF_RESULTS_DIR="$BASE_DIR/results/perf_results"
 TIMESTAMP=$(date +"%d%m%Y_%H%M%S")
 PERF_EVENTS="cycles,instructions,cache-references,cache-misses,branch-instructions,branch-misses,dTLB-load-misses"
 
 # --- Build Project ---
-echo "Configuring project with CMake..."
-rm -rf "$BUILD_DIR"
+echo "Ensuring project is built..."
 mkdir -p "$BUILD_DIR"
 mkdir -p "$PERF_RESULTS_DIR"
 
-cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_CXX_FLAGS="$OPT_FLAGS"
+# Only re-configure if CMakeCache.txt is missing, to allow for incremental builds
+if [ ! -f "$BUILD_DIR/CMakeCache.txt" ]; then
+  echo "Configuring project with CMake for the first time..."
+  cmake -S "$SOURCE_DIR" -B "$BUILD_DIR" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_CXX_FLAGS="$OPT_FLAGS"
+fi
 
-echo "Building project..."
+echo "Building project (will skip if no changes)..."
 cmake --build "$BUILD_DIR" --config Release -j $(nproc)
 echo "Build complete."
 
 # --- Run Benchmarks with Perf ---
+
+# Navigate to the build directory for benchmark execution
+pushd "$BUILD_DIR" > /dev/null
 
 # 1. Single-threaded benchmark
 echo "----------------------------------------"
@@ -90,5 +99,8 @@ perf stat -e "$PERF_EVENTS" -o "$PERF_MULTI_FILE" -x, \
 
 echo "Multi-threaded benchmark finished."
 echo "----------------------------------------"
+
+# Return to the original directory
+popd > /dev/null
 
 echo "All benchmarks finished."
