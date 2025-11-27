@@ -16,6 +16,15 @@ elif [[ "$VENDOR_ID_RAW" == "AuthenticAMD" ]]; then
     CPU_VENDOR="amd"
 fi
 
+# --- mpstat installation check ---
+if ! command -v mpstat &> /dev/null; then
+    echo "Warning: 'mpstat' is not installed. CPU load will not be monitored."
+    echo "To install it, run: sudo apt-get install sysstat (on Debian/Ubuntu) or sudo pacman -S sysstat (on Arch)"
+    MPSTAT_ENABLED=false
+else
+    MPSTAT_ENABLED=true
+fi
+
 # --- Build Configuration ---
 BASE_DIR=$(dirname "$(dirname "$(readlink -f "$0")")")
 
@@ -45,11 +54,25 @@ run_benchmark_set() {
     echo "Running benchmarks with SMT: $SMT_STATE (Available logical cores: $CURRENT_NPROC)"
 
     # Single-threaded benchmark (always runs)
+    echo "Running single-threaded benchmark..."
+    if [ "$MPSTAT_ENABLED" = true ]; then
+        local MPSTAT_FILE_SINGLE="$RAW_OUTPUT_ROOT_DIR/mpstat_${CPU_VENDOR}_single_${SMT_STATE}.txt"
+        echo "  -> Starting mpstat, logging to $MPSTAT_FILE_SINGLE"
+        mpstat -P ALL 1 > "$MPSTAT_FILE_SINGLE" 2>&1 &
+        MPSTAT_PID=$!
+    fi
+
     local RAW_FILE_SINGLE="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_single_${SMT_STATE}.csv"
     local PERF_FILE_SINGLE="$PERF_OUTPUT_ROOT_DIR/perf_${CPU_VENDOR}_single_${SMT_STATE}.csv"
-    echo "Running single-threaded benchmark..."
     perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_SINGLE" -x, \
         "$EXECUTABLE_PATH" --mode single --output-file "$RAW_FILE_SINGLE"
+
+    if [ "$MPSTAT_ENABLED" = true ] && [ -n "$MPSTAT_PID" ]; then
+        echo "  -> Stopping mpstat (PID: $MPSTAT_PID)"
+        kill "$MPSTAT_PID"
+        unset MPSTAT_PID
+        sleep 1 # Give a moment for the process to terminate
+    fi
 
     # Multi-threaded benchmarks (run if a thread list was provided)
     if [ -n "$THREAD_LIST" ]; then
@@ -59,12 +82,26 @@ run_benchmark_set() {
                 echo "--- Skipping $NUM_THREADS threads (requested > available $CURRENT_NPROC cores) ---"
                 continue
             fi
+            echo "--- Running for $NUM_THREADS threads ---"
+
+            if [ "$MPSTAT_ENABLED" = true ]; then
+                local MPSTAT_FILE_MULTI="$RAW_OUTPUT_ROOT_DIR/mpstat_${CPU_VENDOR}_multi_${NUM_THREADS}threads_${SMT_STATE}.txt"
+                echo "  -> Starting mpstat, logging to $MPSTAT_FILE_MULTI"
+                mpstat -P ALL 1 > "$MPSTAT_FILE_MULTI" 2>&1 &
+                MPSTAT_PID=$!
+            fi
 
             local RAW_FILE_MULTI="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_multi_${NUM_THREADS}threads_${SMT_STATE}.csv"
             local PERF_FILE_MULTI="$PERF_OUTPUT_ROOT_DIR/perf_${CPU_VENDOR}_multi_${NUM_THREADS}threads_${SMT_STATE}.csv"
-            echo "--- Running for $NUM_THREADS threads ---"
             perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_MULTI" -x, \
                 "$EXECUTABLE_PATH" --mode multi --threads "$NUM_THREADS" --output-file "$RAW_FILE_MULTI"
+
+            if [ "$MPSTAT_ENABLED" = true ] && [ -n "$MPSTAT_PID" ]; then
+                echo "  -> Stopping mpstat (PID: $MPSTAT_PID)"
+                kill "$MPSTAT_PID"
+                unset MPSTAT_PID
+                sleep 1 # Give a moment for the process to terminate
+            fi
         done
     else
         echo "No thread list provided, skipping multi-threaded benchmarks."
