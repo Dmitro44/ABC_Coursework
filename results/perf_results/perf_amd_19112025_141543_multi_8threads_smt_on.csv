@@ -1,9 +1,0 @@
-# started on Wed Nov 19 14:15:46 2025
-
-45710327767,,cycles:u,7842354211,71.00,,
-21854020880,,instructions:u,7858146735,71.00,0.48,insn per cycle
-447903660,,cache-references:u,7863474011,71.00,,
-90016962,,cache-misses:u,7859934090,71.00,20.10,of all cache refs
-2340367082,,branch-instructions:u,7859633359,71.00,,
-3479694,,branch-misses:u,7851122977,71.00,0.15,of all branches
-51644,,dTLB-load-misses:u,7839892667,71.00,,

@@ -6,57 +6,11 @@
 #include <iomanip>
 #include <thread>
 
-// Function to get CPU vendor from /proc/cpuinfo
-string get_cpu_vendor()
-{
-    ifstream cpu_info("/proc/cpuinfo");
-    string line;
-    if (cpu_info.is_open())
-    {
-        while (getline(cpu_info, line))
-        {
-            if (line.find("vendor_id") != string::npos)
-            {
-                if (line.find("AuthenticAMD") != string::npos)
-                {
-                    return "amd";
-                }
-                if (line.find("GenuineIntel") != string::npos)
-                {
-                    return "intel";
-                }
-            }
-        }
-    }
-    return "unknown";
-}
-
-string get_smt_status()
-{
-    ifstream smt_info("/sys/devices/system/cpu/smt/control");
-    string line;
-    if (smt_info.is_open())
-    {
-        while (getline(smt_info, line))
-        {
-            if (line.find("on") != string::npos)
-            {
-                return "smt_on";
-            }
-
-            if (line.find("off") != string::npos)
-            {
-                return "smt_off";
-            }
-        }
-    }
-    return "unknown";
-}
-
 int main(int argc, char* argv[])
 {
     string mode;
     unsigned int num_threads = 0;
+    string output_file_path; // New variable for output file path
 
     for (int i = 1; i < argc; ++i)
     {
@@ -76,6 +30,10 @@ int main(int argc, char* argv[])
                 return 1;
             }
         }
+        else if (arg == "--output-file" && i + 1 < argc) // New argument parsing
+        {
+            output_file_path = argv[++i];
+        }
     }
 
     if (mode.empty())
@@ -84,24 +42,17 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // 1. Get CPU vendor
-    string cpu_vendor = get_cpu_vendor();
-
-    // 2. Get current time
-    auto now = chrono::system_clock::now();
-    auto in_time_t = chrono::system_clock::to_time_t(now);
-    stringstream ss;
-    ss << put_time(std::localtime(&in_time_t), "%d%m%Y_%H%M%S");
-    string timestamp = ss.str();
-
-    // 3. Get SMT status
-    string smt_status = get_smt_status();
+    if (output_file_path.empty()) // Check if output file path is provided
+    {
+        cerr << "Error: Please provide an output file path with --output-file" << endl;
+        return 1;
+    }
 
     benchmark bench;
 
     if (mode == "single")
     {
-        bench.run_single_threaded_benchmark(cpu_vendor, timestamp, smt_status);
+        bench.run_single_threaded_benchmark(output_file_path); // Pass output_file_path
     }
     else if (mode == "multi")
     {
@@ -109,7 +60,7 @@ int main(int argc, char* argv[])
         {
             num_threads = std::thread::hardware_concurrency();
         }
-        bench.run_multithreaded_benchmark(cpu_vendor, timestamp, smt_status, num_threads);
+        bench.run_multithreaded_benchmark(output_file_path, num_threads); // Pass output_file_path and num_threads
     }
 
     return 0;
