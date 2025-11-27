@@ -48,7 +48,7 @@ run_benchmark_set() {
     local RAW_FILE_SINGLE="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_single_${SMT_STATE}.csv"
     local PERF_FILE_SINGLE="$PERF_OUTPUT_ROOT_DIR/perf_${CPU_VENDOR}_single_${SMT_STATE}.csv"
     echo "Running single-threaded benchmark..."
-perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_SINGLE" -x,
+    perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_SINGLE" -x, \
         "$EXECUTABLE_PATH" --mode single --output-file "$RAW_FILE_SINGLE"
 
     # Multi-threaded benchmarks (run if a thread list was provided)
@@ -63,7 +63,7 @@ perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_SINGLE" -x,
             local RAW_FILE_MULTI="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_multi_${NUM_THREADS}threads_${SMT_STATE}.csv"
             local PERF_FILE_MULTI="$PERF_OUTPUT_ROOT_DIR/perf_${CPU_VENDOR}_multi_${NUM_THREADS}threads_${SMT_STATE}.csv"
             echo "--- Running for $NUM_THREADS threads ---"
-perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_MULTI" -x,
+            perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_MULTI" -x, \
                 "$EXECUTABLE_PATH" --mode multi --threads "$NUM_THREADS" --output-file "$RAW_FILE_MULTI"
         done
     else
@@ -89,6 +89,6 @@ sudo sh -c "echo on > /sys/devices/system/cpu/smt/control"
 echo "----------------------------------------"
 echo "Running GPU benchmark..."
 RAW_FILE_GPU="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_gpu.csv"
-"$GPU_EXECUTABLE_PATH" > "$RAW_FILE_GPU"
+"$GPU_EXECUTABLE_PATH" --output-file "$RAW_FILE_GPU"
 
 echo "All benchmarks finished."

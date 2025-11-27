@@ -48,7 +48,27 @@ unsigned int reverse_bits(unsigned int n, unsigned int bits) {
     return reversed;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    std::string output_file_path;
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--output-file" && i + 1 < argc) {
+            output_file_path = argv[++i];
+        }
+    }
+
+    if (output_file_path.empty()) {
+        std::cerr << "Error: Please provide an output file path with --output-file" << std::endl;
+        return 1;
+    }
+
+    std::ofstream results_file_stream(output_file_path);
+    if (!results_file_stream.is_open()) {
+        std::cerr << "Failed to create results file: " << output_file_path << std::endl;
+        return 1;
+    }
+
+    results_file_stream << "Input_Size,Time_ms" << std::endl;
     // Define input sizes to be benchmarked (same as CPU for comparison)
     const std::vector<int> INPUT_SIZES = {
         32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384,
@@ -168,9 +188,8 @@ int main() {
         clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &time_end, NULL);
         double kernel_duration_ms = (time_end - time_start) / 1000000.0;
 
-        std::chrono::duration<double, std::milli> total_duration_ms = end_host - start_host;
-
-        std::cout << "  Input size " << N << ": Kernel " << kernel_duration_ms << " ms (Total Host " << total_duration_ms.count() << " ms)" << std::endl;
+        results_file_stream << N << "," << kernel_duration_ms << std::endl;
+        std::cout << "  Input size " << N << ": Kernel " << kernel_duration_ms << " ms" << std::endl;
 
         // 8. Read results back (optional, for verification)
         // std::vector<cl_float2> d_results(N);
@@ -187,8 +206,9 @@ int main() {
     clReleaseProgram(program);
     clReleaseCommandQueue(queue);
     clReleaseContext(context);
+    results_file_stream.close();
 
-    std::cout << "GPU benchmark finished." << std::endl;
+    std::cout << "GPU benchmark finished. Results saved to " << output_file_path << std::endl;
 
     return 0;
 }
