@@ -9,6 +9,9 @@ on:
       - "results/raw_results/**/*.txt"
       - "results/perf_results/**/*.csv"
 
+permissions:
+  contents: write
+
 jobs:
   commit-raw-results:
     runs-on: ubuntu-latest
