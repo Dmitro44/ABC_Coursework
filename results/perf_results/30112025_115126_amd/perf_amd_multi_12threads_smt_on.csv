@@ -1,0 +1,8 @@
+# started on Sun Nov 30 11:51:50 2025
+
+60432171962,,cycles:u,12013097275,83.00,,
+21767147803,,instructions:u,12017620568,83.00,0.36,insn per cycle
+448682771,,cache-references:u,12040503019,83.00,,
+96148481,,cache-misses:u,12046027701,83.00,21.43,of all cache refs
+2351481143,,branch-instructions:u,12017874659,83.00,,
+3594971,,branch-misses:u,12029154393,83.00,0.15,of all branches
