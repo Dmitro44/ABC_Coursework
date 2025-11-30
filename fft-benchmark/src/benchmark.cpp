@@ -9,6 +9,7 @@
 #include <thread>
 #include <vector>
 
+
 // Define the input sizes to be benchmarked
 const std::vector<int> INPUT_SIZES = {
     32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384,
@@ -150,44 +151,78 @@ void benchmark::fft_iterative(vector<complex<double>>& data)
 void benchmark::fft_iterative_multithreaded(vector<complex<double>>& data, unsigned int num_threads)
 {
     const size_t N = data.size();
+    if (N < 2) return;
     int logN = 0;
     while ((1 << logN) < N) ++logN;
 
-    for (int i = 0; i < N; ++i)
+    auto worker = [&](unsigned int thread_id, std::barrier<>& sync_point)
     {
-        unsigned int reversed_i = reverse_bits(i, logN);
-        if (i < reversed_i)
+        // 1. Parallel Bit-Reversal
+        // Each thread handles a chunk of the array.
+        const size_t chunk_size = (N + num_threads - 1) / num_threads;
+        const size_t start_index = thread_id * chunk_size;
+        const size_t end_index = std::min(start_index + chunk_size, N);
+
+        for (size_t i = start_index; i < end_index; ++i)
         {
-            swap(data[i], data[reversed_i]);
+            unsigned int reversed_i = reverse_bits(i, logN);
+            if (i < reversed_i)
+            {
+                swap(data[i], data[reversed_i]);
+            }
         }
-    }
 
-    barrier sync_point(num_threads);
+        sync_point.arrive_and_wait();
 
-    auto worker = [&](unsigned int thread_id)
-    {
+        // 2. Parallel FFT Stages
         for (int s = 1; s <= logN; ++s)
         {
             const int m = (1 << s);
+            const complex<double> wm = polar(1.0, -2 * M_PI / m);
             const int num_groups = N / m;
 
-            const int groups_per_thread = (num_groups + num_threads - 1) / num_threads;
-            const int start_group = thread_id * groups_per_thread;
-            const int end_group = std::min(start_group + groups_per_thread, num_groups);
-
-            const complex<double> wm = polar(1.0, -2 * M_PI / m);
-
-            for (int group_idx = start_group; group_idx < end_group; ++group_idx)
+            if (num_groups >= num_threads)
             {
-                const int k = group_idx * m;
-                complex<double> w(1.0, 0);
-                for (int j = 0; j < m / 2; ++j)
+                // Strategy 1: Coarse-grained parallelism for early stages
+                for (int group_idx = thread_id; group_idx < num_groups; group_idx += num_threads)
                 {
-                    complex<double> t = w * data[k + j + m / 2];
-                    complex<double> u = data[k + j];
-                    data[k + j] = u + t;
-                    data[k + j + m / 2] = u - t;
-                    w *= wm;
+                    const int k = group_idx * m;
+                    complex<double> w(1.0, 0);
+                    for (int j = 0; j < m / 2; ++j)
+                    {
+                        complex<double> t = w * data[k + j + m / 2];
+                        complex<double> u = data[k + j];
+                        data[k + j] = u + t;
+                        data[k + j + m / 2] = u - t;
+                        w *= wm;
+                    }
+                }
+            }
+            else
+            {
+                // Strategy 2: Fine-grained parallelism for later stages
+                const int threads_per_group = num_threads / num_groups;
+                const int my_group = thread_id / threads_per_group;
+                const int my_local_thread_id = thread_id % threads_per_group;
+
+                if (my_group < num_groups)
+                {
+                    const int k = my_group * m;
+                    const int butterflies_in_group = m / 2;
+                    const int work_per_local_thread =
+                        (butterflies_in_group + threads_per_group - 1) / threads_per_group;
+                    const int start_j = my_local_thread_id * work_per_local_thread;
+                    const int end_j = std::min(start_j + work_per_local_thread, butterflies_in_group);
+
+                    complex<double> w = pow(wm, start_j);
+                    for (int j = start_j; j < end_j; ++j)
+                    {
+                        complex<double> t = w * data[k + j + m / 2];
+                        complex<double> u = data[k + j];
+                        data[k + j] = u + t;
+                        data[k + j + m / 2] = u - t;
+                        w *= wm;
+                    }
                 }
             }
 
@@ -197,9 +232,10 @@ void benchmark::fft_iterative_multithreaded(vector<complex<double>>& data, unsig
 
     // Run threads
     vector<thread> threads;
+    barrier sync_point(num_threads);
     for (unsigned int i = 0; i < num_threads; ++i)
     {
-        threads.emplace_back(worker, i);
+        threads.emplace_back(worker, i, std::ref(sync_point));
     }
 
     // Wait for all threads
