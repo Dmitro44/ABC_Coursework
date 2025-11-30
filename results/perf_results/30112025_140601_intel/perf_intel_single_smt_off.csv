@@ -1,0 +1,14 @@
+# started on Sun Nov 30 14:06:25 2025
+
+3201302076,,cpu_atom/cycles/u,9223789,0,00,,
+14156694778,,cpu_core/cycles/u,3514632348,99,00,,
+8034920766,,cpu_atom/instructions/u,9223789,0,00,2,insn per cycle
+21988599615,,cpu_core/instructions/u,3514632348,99,00,1,insn per cycle
+15263643,,cpu_atom/cache-references/u,9223789,0,00,,
+221523781,,cpu_core/cache-references/u,3514632348,99,00,,
+7891799,,cpu_atom/cache-misses/u,9223789,0,00,51,of all cache refs
+182291571,,cpu_core/cache-misses/u,3514632348,99,00,82,of all cache refs
+986630083,,cpu_atom/branch-instructions/u,9223789,0,00,,
+2453960778,,cpu_core/branch-instructions/u,3514632348,99,00,,
+7682441,,cpu_atom/branch-misses/u,9223789,0,00,0,of all branches
+2563399,,cpu_core/branch-misses/u,3514632348,99,00,0,of all branches
