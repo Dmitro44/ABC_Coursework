@@ -5,9 +5,9 @@ on:
     branches:
       - test-machine
     paths:
-      - "results/raw_results/*.csv"
-      - "results/raw_results/*.txt"
-      - "results/perf_results/*.csv"
+      - "results/raw_results/**/*.csv"
+      - "results/raw_results/**/*.txt"
+      - "results/perf_results/**/*.csv"
 
 jobs:
   commit-raw-results:
@@ -25,8 +25,8 @@ jobs:
           commit_message: "ci: Add latest benchmark raw results"
           branch: results-plots-auto
           file_pattern: |
-            results/raw_results/*.csv
-            results/raw_results/*.txt
-            results/perf_results/*.csv
+            results/raw_results/**/*.csv
+            results/raw_results/**/*.txt
+            results/perf_results/**/*.csv
           repository: .
           push_options: "--force"
