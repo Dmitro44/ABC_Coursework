@@ -1,8 +1,0 @@
-# started on Sun Nov 30 11:44:58 2025
-
-17263949160,,cycles:u,3331672377,83.00,,
-21753987569,,instructions:u,3326667126,83.00,1.26,insn per cycle
-456153254,,cache-references:u,3329887803,83.00,,
-33961185,,cache-misses:u,3325403101,83.00,7.45,of all cache refs
-2349600975,,branch-instructions:u,3330104603,83.00,,
-3370189,,branch-misses:u,3331923130,83.00,0.14,of all branches
