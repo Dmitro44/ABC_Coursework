@@ -13,20 +13,20 @@ jobs:
   commit-raw-results:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout target branch
         uses: actions/checkout@v4
+        with:
+          ref: results-plots-auto
 
-      - name: Fetch the results branch
-        run: git fetch origin results-plots-auto:results-plots-auto
+      - name: Get results from test-machine branch
+        run: |
+          git fetch origin test-machine
+          git checkout origin/test-machine -- results/raw_results/ results/perf_results/
 
-      - name: Commit raw results to results-plots-auto branch
+      - name: Commit new results
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "ci: Add latest benchmark raw results"
+          commit_message: "ci: Add latest benchmark results"
           branch: results-plots-auto
-          file_pattern: |
-            results/raw_results/**/*.csv
-            results/raw_results/**/*.txt
-            results/perf_results/**/*.csv
-          repository: .
+          file_pattern: "results/**/*.csv results/**/*.txt"
           push_options: "--force"
