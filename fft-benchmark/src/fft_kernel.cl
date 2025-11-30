@@ -17,9 +17,12 @@ __kernel void fft_kernel(
     int N,                 // Total size of the FFT
     int stage              // Current stage (s from 1 to logN)
 ) {
-    // Get global ID of the work-item
-    // Each work-item processes one butterfly operation
     int gid = get_global_id(0);
+
+    // Boundary check to ensure we don't go out of bounds
+    if (gid >= N / 2) {
+        return;
+    }
 
     // m = 2^stage (size of the current sub-FFT)
     int m = 1 << stage;

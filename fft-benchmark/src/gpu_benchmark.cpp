@@ -155,41 +155,46 @@ int main(int argc, char* argv[]) {
                                        sizeof(cl_float2) * N, h_data_permuted.data(), &err);
         checkError(err, "clCreateBuffer");
 
-        // 6. Set kernel arguments
+        // 6. Set kernel arguments that are constant across stages
         err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_data);
         checkError(err, "clSetKernelArg 0");
         err = clSetKernelArg(kernel, 1, sizeof(cl_int), &N);
         checkError(err, "clSetKernelArg 1");
-        err = clSetKernelArg(kernel, 2, sizeof(cl_int), &logN);
-        checkError(err, "clSetKernelArg 2");
 
-        // 7. Execute kernel
+        // 7. Execute kernel for each stage
         size_t globalWorkSize[1] = { (size_t)N / 2 }; // Each work-item processes one butterfly
-        size_t localWorkSize[1] = { 256 }; // Example local work size, adjust for optimal performance
+        size_t localWorkSize[1] = { 64 }; // Smaller local work size for broader compatibility
 
-        // Ensure globalWorkSize is a multiple of localWorkSize
-        if (globalWorkSize[0] % localWorkSize[0] != 0) {
-            globalWorkSize[0] = ((globalWorkSize[0] / localWorkSize[0]) + 1) * localWorkSize[0];
+        // Ensure globalWorkSize is not smaller than localWorkSize for this simplified example
+        if (globalWorkSize[0] < localWorkSize[0]) {
+            localWorkSize[0] = globalWorkSize[0];
         }
-
-        cl_event event;
+        
+        double total_kernel_duration_ms = 0;
         auto start_host = std::chrono::high_resolution_clock::now();
-        err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, &event);
-        checkError(err, "clEnqueueNDRangeKernel");
 
-        // Wait for kernel to finish
-        err = clWaitForEvents(1, &event);
-        checkError(err, "clWaitForEvents");
+        for (int stage = 1; stage <= logN; ++stage) {
+            err = clSetKernelArg(kernel, 2, sizeof(cl_int), &stage);
+            checkError(err, "clSetKernelArg 2 (stage)");
+
+            cl_event event;
+            err = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, &event);
+            checkError(err, "clEnqueueNDRangeKernel");
+
+            err = clWaitForEvents(1, &event);
+            checkError(err, "clWaitForEvents");
+
+            // Get kernel execution time from event profiling
+            cl_ulong time_start, time_end;
+            clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &time_start, NULL);
+            clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &time_end, NULL);
+            total_kernel_duration_ms += (time_end - time_start) / 1000000.0;
+            clReleaseEvent(event);
+        }
         auto end_host = std::chrono::high_resolution_clock::now();
 
-        // Get kernel execution time from event profiling
-        cl_ulong time_start, time_end;
-        clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &time_start, NULL);
-        clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &time_end, NULL);
-        double kernel_duration_ms = (time_end - time_start) / 1000000.0;
-
-        results_file_stream << N << "," << kernel_duration_ms << std::endl;
-        std::cout << "  Input size " << N << ": Kernel " << kernel_duration_ms << " ms" << std::endl;
+        results_file_stream << N << "," << total_kernel_duration_ms << std::endl;
+        std::cout << "  Input size " << N << ": Kernel " << total_kernel_duration_ms << " ms" << std::endl;
 
         // 8. Read results back (optional, for verification)
         // std::vector<cl_float2> d_results(N);
@@ -198,7 +203,6 @@ int main(int argc, char* argv[]) {
 
         // 9. Clean up for this iteration
         clReleaseMemObject(d_data);
-        clReleaseEvent(event);
     }
 
     // 10. Clean up OpenCL resources
