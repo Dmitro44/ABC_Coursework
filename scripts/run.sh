@@ -3,9 +3,10 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
-# --- Thread Configuration ---
-# The first argument is a space-separated string of thread counts to test, e.g., "2 4 8 16"
-THREAD_LIST=${1:-""}
+# --- Core Configuration ---
+# The first argument is a space-separated string of physical core counts to test, e.g., "2 4 6 8"
+# Defaults to a common set if not provided.
+CORE_LIST=${1:-""}
 
 # --- CPU Vendor Detection ---
 VENDOR_ID_RAW=$(grep -m 1 "vendor_id" /proc/cpuinfo | awk '{print $3}')
@@ -17,7 +18,7 @@ elif [[ "$VENDOR_ID_RAW" == "AuthenticAMD" ]]; then
 fi
 
 # --- mpstat installation check ---
-if ! command -v mpstat &> /dev/null; then
+if ! command -v mpstat &>/dev/null; then
     echo "Warning: 'mpstat' is not installed. CPU load will not be monitored."
     echo "To install it, run: sudo apt-get install sysstat (on Debian/Ubuntu) or sudo pacman -S sysstat (on Arch)"
     MPSTAT_ENABLED=false
@@ -58,7 +59,7 @@ run_benchmark_set() {
     if [ "$MPSTAT_ENABLED" = true ]; then
         local MPSTAT_FILE_SINGLE="$RAW_OUTPUT_ROOT_DIR/mpstat_${CPU_VENDOR}_single_${SMT_STATE}.txt"
         echo "  -> Starting mpstat, logging to $MPSTAT_FILE_SINGLE"
-        mpstat -P ALL 1 > "$MPSTAT_FILE_SINGLE" 2>&1 &
+        mpstat -P ALL 1 >"$MPSTAT_FILE_SINGLE" 2>&1 &
         MPSTAT_PID=$!
     fi
 
@@ -74,25 +75,40 @@ run_benchmark_set() {
         sleep 1 # Give a moment for the process to terminate
     fi
 
-    # Multi-threaded benchmarks (run if a thread list was provided)
-    if [ -n "$THREAD_LIST" ]; then
-        echo "Running multi-threaded benchmarks for thread counts: $THREAD_LIST"
-        for NUM_THREADS in $THREAD_LIST; do
+    # Multi-threaded benchmarks based on core counts
+    if [ -n "$CORE_LIST" ]; then
+        echo "Running multi-threaded benchmarks for core counts: $CORE_LIST"
+        for NUM_CORES in $CORE_LIST; do
+            local NUM_THREADS
+            if [ "$SMT_STATE" == "smt_on" ]; then
+                if [ "$CPU_VENDOR" == "intel" ]; then
+                    # Special logic for Intel hybrid CPUs (P-cores + E-cores)
+                    # For X cores, this is (X/2)*2 + (X/2) = 1.5*X threads.
+                    NUM_THREADS=$((NUM_CORES + NUM_CORES / 2))
+                else
+                    # Standard logic for AMD (and non-hybrid CPUs)
+                    NUM_THREADS=$((NUM_CORES * 2))
+                fi
+            else # smt_off
+                # With SMT/HT disabled, it's always 1 thread per core
+                NUM_THREADS=$NUM_CORES
+            fi
+
             if [ "$NUM_THREADS" -gt "$CURRENT_NPROC" ]; then
-                echo "--- Skipping $NUM_THREADS threads (requested > available $CURRENT_NPROC cores) ---"
+                echo "--- Skipping $NUM_CORES cores ($NUM_THREADS threads requested > $CURRENT_NPROC available) ---"
                 continue
             fi
-            echo "--- Running for $NUM_THREADS threads ---"
+            echo "--- Running on $NUM_CORES cores ($NUM_THREADS threads) ---"
 
             if [ "$MPSTAT_ENABLED" = true ]; then
-                local MPSTAT_FILE_MULTI="$RAW_OUTPUT_ROOT_DIR/mpstat_${CPU_VENDOR}_multi_${NUM_THREADS}threads_${SMT_STATE}.txt"
+                local MPSTAT_FILE_MULTI="$RAW_OUTPUT_ROOT_DIR/mpstat_${CPU_VENDOR}_multi_${NUM_CORES}cores_${SMT_STATE}.txt"
                 echo "  -> Starting mpstat, logging to $MPSTAT_FILE_MULTI"
-                mpstat -P ALL 1 > "$MPSTAT_FILE_MULTI" 2>&1 &
+                mpstat -P ALL 1 >"$MPSTAT_FILE_MULTI" 2>&1 &
                 MPSTAT_PID=$!
             fi
 
-            local RAW_FILE_MULTI="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_multi_${NUM_THREADS}threads_${SMT_STATE}.csv"
-            local PERF_FILE_MULTI="$PERF_OUTPUT_ROOT_DIR/perf_${CPU_VENDOR}_multi_${NUM_THREADS}threads_${SMT_STATE}.csv"
+            local RAW_FILE_MULTI="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_multi_${NUM_CORES}cores_${SMT_STATE}.csv"
+            local PERF_FILE_MULTI="$PERF_OUTPUT_ROOT_DIR/perf_${CPU_VENDOR}_multi_${NUM_CORES}cores_${SMT_STATE}.csv"
             perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_MULTI" -x, \
                 "$EXECUTABLE_PATH" --mode multi --threads "$NUM_THREADS" --output-file "$RAW_FILE_MULTI"
 
@@ -104,7 +120,7 @@ run_benchmark_set() {
             fi
         done
     else
-        echo "No thread list provided, skipping multi-threaded benchmarks."
+        echo "No core list provided, skipping multi-threaded benchmarks."
     fi
 }
 
