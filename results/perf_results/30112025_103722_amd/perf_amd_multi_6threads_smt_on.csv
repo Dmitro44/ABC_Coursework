@@ -1,0 +1,8 @@
+# started on Sun Nov 30 10:37:40 2025
+
+35795904042,,cycles:u,6989546299,83.00,,
+21811590079,,instructions:u,7011882282,83.00,0.61,insn per cycle
+455710426,,cache-references:u,7006384490,83.00,,
+78329373,,cache-misses:u,7004216265,83.00,17.19,of all cache refs
+2339024348,,branch-instructions:u,6981718601,83.00,,
+3472866,,branch-misses:u,6983885633,83.00,0.15,of all branches
