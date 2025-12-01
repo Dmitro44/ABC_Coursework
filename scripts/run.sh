@@ -109,8 +109,49 @@ run_benchmark_set() {
 
             local RAW_FILE_MULTI="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_multi_${NUM_CORES}cores_${SMT_STATE}.csv"
             local PERF_FILE_MULTI="$PERF_OUTPUT_ROOT_DIR/perf_${CPU_VENDOR}_multi_${NUM_CORES}cores_${SMT_STATE}.csv"
+            
+            # Build CPU affinity list
+            local CPU_LIST
+            if [ "$SMT_STATE" == "smt_on" ]; then
+                # SMT ON: use consecutive CPUs 0,1,2,...
+                CPU_LIST="0-$((NUM_THREADS - 1))"
+            else
+                # SMT OFF: different topology depending on vendor
+                if [ "$CPU_VENDOR" == "intel" ]; then
+                    # Intel hybrid: P-cores at 0,2,4,6,8 (even), E-cores at 9,10,11,...
+                    # When SMT off, available CPUs are: 0,2,4,6,8,9,10,11,...
+                    local INTEL_CPUS=""
+                    local p_cores_used=0
+                    local e_cores_used=0
+                    local cpus_assigned=0
+                    # First assign P-cores (even: 0,2,4,6,8)
+                    while [ $cpus_assigned -lt $NUM_THREADS ] && [ $p_cores_used -lt 5 ]; do
+                        [ -n "$INTEL_CPUS" ] && INTEL_CPUS+=","
+                        INTEL_CPUS+="$((p_cores_used * 2))"
+                        ((p_cores_used++))
+                        ((cpus_assigned++))
+                    done
+                    # Then assign E-cores (9,10,11,...)
+                    while [ $cpus_assigned -lt $NUM_THREADS ]; do
+                        [ -n "$INTEL_CPUS" ] && INTEL_CPUS+=","
+                        INTEL_CPUS+="$((9 + e_cores_used))"
+                        ((e_cores_used++))
+                        ((cpus_assigned++))
+                    done
+                    CPU_LIST="$INTEL_CPUS"
+                else
+                    # AMD: only even CPUs are available (0,2,4,6,...)
+                    local EVEN_CPUS=""
+                    for ((i=0; i<NUM_THREADS; i++)); do
+                        [ -n "$EVEN_CPUS" ] && EVEN_CPUS+=","
+                        EVEN_CPUS+="$((i * 2))"
+                    done
+                    CPU_LIST="$EVEN_CPUS"
+                fi
+            fi
+            
             perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_MULTI" -x, \
-                "$EXECUTABLE_PATH" --mode multi --threads "$NUM_THREADS" --output-file "$RAW_FILE_MULTI"
+                taskset -c "$CPU_LIST" "$EXECUTABLE_PATH" --mode multi --threads "$NUM_THREADS" --output-file "$RAW_FILE_MULTI"
 
             if [ "$MPSTAT_ENABLED" = true ] && [ -n "$MPSTAT_PID" ]; then
                 echo "  -> Stopping mpstat (PID: $MPSTAT_PID)"
