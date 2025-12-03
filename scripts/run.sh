@@ -82,9 +82,14 @@ run_benchmark_set() {
             local NUM_THREADS
             if [ "$SMT_STATE" == "smt_on" ]; then
                 if [ "$CPU_VENDOR" == "intel" ]; then
-                    # Special logic for Intel hybrid CPUs (P-cores + E-cores)
-                    # For X cores, this is (X/2)*2 + (X/2) = 1.5*X threads.
-                    NUM_THREADS=$((NUM_CORES + NUM_CORES / 2))
+                    # Custom logic for user's specific Intel CPU
+                    if [ "$NUM_CORES" -le 6 ]; then
+                        # For 6 cores or less, use 2 threads per core
+                        NUM_THREADS=$((NUM_CORES * 2))
+                    else
+                        # For more than 6 cores, use 1.5 threads per core (e.g., 8 cores -> 12 threads)
+                        NUM_THREADS=$((NUM_CORES + NUM_CORES / 2))
+                    fi
                 else
                     # Standard logic for AMD (and non-hybrid CPUs)
                     NUM_THREADS=$((NUM_CORES * 2))
@@ -109,7 +114,7 @@ run_benchmark_set() {
 
             local RAW_FILE_MULTI="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_multi_${NUM_CORES}cores_${SMT_STATE}.csv"
             local PERF_FILE_MULTI="$PERF_OUTPUT_ROOT_DIR/perf_${CPU_VENDOR}_multi_${NUM_CORES}cores_${SMT_STATE}.csv"
-            
+
             # Build CPU affinity list
             local CPU_LIST
             if [ "$SMT_STATE" == "smt_on" ]; then
@@ -142,14 +147,14 @@ run_benchmark_set() {
                 else
                     # AMD: only even CPUs are available (0,2,4,6,...)
                     local EVEN_CPUS=""
-                    for ((i=0; i<NUM_THREADS; i++)); do
+                    for ((i = 0; i < NUM_THREADS; i++)); do
                         [ -n "$EVEN_CPUS" ] && EVEN_CPUS+=","
                         EVEN_CPUS+="$((i * 2))"
                     done
                     CPU_LIST="$EVEN_CPUS"
                 fi
             fi
-            
+
             perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_MULTI" -x, \
                 taskset -c "$CPU_LIST" "$EXECUTABLE_PATH" --mode multi --threads "$NUM_THREADS" --output-file "$RAW_FILE_MULTI"
 
