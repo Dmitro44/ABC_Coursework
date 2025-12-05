@@ -340,7 +340,7 @@
   set outline(depth: 2)
 
   set bibliography(
-    title : [Список использованных источников],
+    title : [Список литературных источников],
     style : "gost-r-7-0-5-2008-VAK9.csl",
     full:true,
   )
@@ -470,13 +470,17 @@
 
 
 #let appendix(..args, body) = context {
+  counter(figure.where(kind:image)).update(0)
+  counter(figure.where(kind:table)).update(0)
+
   let cnt = counter("appendix")
   let cnt_disp = upper(ru_alph.at(cnt.get().at(0)))
   let atype = args.at("type")
   let aname = args.at("title")
 
+
   show heading: it =>  {
-    set text(size:16pt, hyphenate:false)
+    set text(size:14pt, hyphenate:false)
     set align(center)
     pagebreak(weak:true)
     block([ПРИЛОЖЕНИЕ #cnt_disp \ (#atype) \ #aname], below:2.3em)
@@ -487,13 +491,18 @@
      heading_counter + "."  + str(n)
   })
 
-  heading(
-    numbering : none,
-    [Приложение #cnt_disp (#atype) #aname]
-  )
+  heading(outlined:false,[])
 
+  {
+      show figure: none;
+      [#figure(
+              kind:"hidden_appendix",
+              supplement : [Приложение],
+              numbering: (..)=>cnt_disp,
+              caption: [(#atype) #aname])[]<appendix>]
+  }
   body
 
   counter("appendix").step()
-
 }
+
