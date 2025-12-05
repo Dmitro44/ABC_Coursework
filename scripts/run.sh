@@ -135,9 +135,9 @@ run_benchmark_set() {
                         if [ $p_core_idx -lt 4 ]; then
                             INTEL_CPUS+="$((p_core_idx * 2))"
                             ((p_core_idx++))
-                        # Then, use E-cores (9, 10, 11, ...)
+                        # Then, use E-cores (8, 9, 10, 11, ...)
                         else
-                            INTEL_CPUS+="$((9 + e_core_idx))"
+                            INTEL_CPUS+="$((8 + e_core_idx))"
                             ((e_core_idx++))
                         fi
                     done
