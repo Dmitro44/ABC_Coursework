@@ -2,7 +2,6 @@
 
 # Exit immediately if a command exits with a non-zero status.
 set -e
-set -x
 
 # --- Core Configuration ---
 # The first argument is a space-separated string of physical core counts to test, e.g., "2 4 6 8"
@@ -134,11 +133,11 @@ run_benchmark_set() {
                         # First, use up to 4 P-cores (0, 2, 4, 6)
                         if [ $p_core_idx -lt 4 ]; then
                             INTEL_CPUS+="$((p_core_idx * 2))"
-                            ((p_core_idx++))
+                            ((++p_core_idx))
                         # Then, use E-cores (8, 9, 10, 11, ...)
                         else
                             INTEL_CPUS+="$((8 + e_core_idx))"
-                            ((e_core_idx++))
+                            ((++e_core_idx))
                         fi
                     done
                     CPU_LIST="$INTEL_CPUS"
