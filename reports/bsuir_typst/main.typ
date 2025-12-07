@@ -27,6 +27,12 @@
 
 #bibliography("bibliography.bib")
 
+#stp.appendix(type:[обязательное], title:[Справка о проверке на заимствования], [
+
+
+])
+
+
 #stp.appendix(type:[обязательное], title:[Листинг программного кода], [
 
 
