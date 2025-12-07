@@ -1,0 +1,8 @@
+# started on Sun Dec  7 17:21:43 2025
+
+208754377728,,cycles:u,42858675687,83.00,,
+43134280621,,instructions:u,42836700054,83.00,0.21,insn per cycle
+1060696272,,cache-references:u,42873918101,83.00,,
+417773930,,cache-misses:u,42892311256,83.00,39.39,of all cache refs
+4879327146,,branch-instructions:u,42874195756,83.00,,
+7195461,,branch-misses:u,42863293956,83.00,0.15,of all branches
