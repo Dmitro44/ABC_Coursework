@@ -19,22 +19,22 @@
     
     figure_appendix(
       "Д",
-      image("plots/combined_comparison_single_core.png", width: 88%),
+      image("plots/combined_comparison_single_core.png", width: 86%),
       caption: [График сравнения версии БПФ на одном ядре]
     ),
     figure_appendix(
       "Д",
-      image("plots/combined_comparison_4cores.png", width: 88%),
+      image("plots/combined_comparison_4cores.png", width: 86%),
       caption: [График сравнения версии БПФ на 4 ядрах]
     ),
     figure_appendix(
       "Д",
-      image("plots/combined_comparison_8cores.png", width: 88%),
+      image("plots/combined_comparison_8cores.png", width: 86%),
       caption: [График сравнения версии БПФ на 8 ядрах]
     ),
     figure_appendix(
       "Д",
-      image("plots/igpu_comparison.png", width: 88%),
+      image("plots/igpu_comparison.png", width: 86%),
       caption: [График сравнения версии БПФ на iGPU]
     ),
   )

@@ -14,15 +14,15 @@
     // п. 2.1.1 : поля
     margin : (left : 10mm, right : 10mm, top : 10mm, bottom : 10mm),
 
-    footer : context {
-      set align(right)
-      set text(14pt)
-      if counter(page).get().at(0) != 1 {
-        counter(page).display("1")
-      } else {
-        []
-      }
-    },
+    // footer : context {
+    //   set align(right)
+    //   set text(14pt)
+    //   if counter(page).get().at(0) != 1 {
+    //     counter(page).display("1")
+    //   } else {
+    //     []
+    //   }
+    // },
     footer-descent : 10mm,
   )
 
