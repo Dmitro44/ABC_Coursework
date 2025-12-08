@@ -553,18 +553,19 @@ __kernel void fft_kernel(
 
 #stp.appendix(type:[обязательное], title:[Блок схема алгоритма,\ реализующего программное средство], [
 
-#counter(page).update(47)
+#counter(page).update(48)
 
 ])
 
 #stp.appendix(type:[обязательное], title:[Графики сравнения \ производительности процессоров], [
 
-#counter(page).update(49)
+#counter(page).update(50)
 
 ])
 
 #stp.appendix(type:[обязательное], title:[Графическое представления нагрузки \ на ядра процессоров], [
 
+#counter(page).update(52)
 
 ])
 
