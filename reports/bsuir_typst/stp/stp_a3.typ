@@ -1,6 +1,6 @@
 
 
-#let STP2024(doc) = {
+#let STP_A3_2024(doc) = {
 
   // ########################################
   // ##########  GLOBAL STUFF  ##############
@@ -8,10 +8,11 @@
 
   set page(
     // п. 2.1.1 : формат A4
-    paper: "a4",
+    paper: "a3",
+    flipped: true,
 
     // п. 2.1.1 : поля
-    margin : (left : 30mm, right : 15mm, top : 20mm, bottom : 20mm),
+    margin : (left : 10mm, right : 10mm, top : 10mm, bottom : 10mm),
 
     footer : context {
       set align(right)
@@ -116,7 +117,7 @@
     }
 
     block(
-      spacing:2.3em,
+      // spacing: 2.3em,
       grid(
         columns:(12.5mm + number_width, 1fr),
         rows:(auto),
@@ -342,12 +343,11 @@
     show heading: body => {
       set text(size:16pt, hyphenate:false)
       set align(center)
-      block(upper(body.body), spacing : 2em)
+      block(upper(body.body), spacing : 2.3em)
     }
     set text(
       hyphenate: false
     )
-    // set par(leading: 1em) //междустрочный интервал
     it
   }
 
@@ -476,7 +476,7 @@
   show heading: it => {
     set align(center)
     set text(size:16pt, weight:"semibold", hyphenate:false)
-    block(upper(it.body), spacing : 2.3em)
+    block(upper(it.body), spacing : 1em)
   }
   heading(body, numbering:none)
 }

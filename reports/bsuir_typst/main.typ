@@ -31,6 +31,10 @@
 
 #stp.appendix(type:[обязательное], title:[Справка о проверке на заимствования], [
 
+  #figure(
+    image("img/antiplagiat.png"),
+    caption: [Справка о проверке на заимствования]
+  )
 
 ])
 
@@ -403,7 +407,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "ERROR: OpenCL Build Log:\n" << buildLog.data() << std::endl;
         checkError(err, "clBuildProgram"); // This will exit
     }
-    
+
     kernel = clCreateKernel(program, "fft_kernel", &err);
     checkError(err, "clCreateKernel");
 
@@ -421,7 +425,7 @@ int main(int argc, char* argv[]) {
         // Perform bit-reversal permutation on host (or could be a separate kernel)
         int logN = 0;
         while ((1 << logN) < N) ++logN; // N must be a power of 2 for this FFT
-        
+
         std::vector<cl_float2> h_data_permuted = h_data; // Copy for permutation
         for (int i = 0; i < N; ++i) {
             unsigned int reversed_i = reverse_bits(i, logN);
@@ -445,7 +449,7 @@ int main(int argc, char* argv[]) {
         if (globalWorkSize[0] < localWorkSize[0]) {
             localWorkSize[0] = globalWorkSize[0];
         }
-        
+
         double total_kernel_duration_ms = 0;
         auto start_host = std::chrono::high_resolution_clock::now();
 
@@ -547,7 +551,7 @@ __kernel void fft_kernel(
 
 ])
 
-#stp.appendix(type:[обязательное], title:[Блок схема алгоритма,\ реализующего программное средств], [
+#stp.appendix(type:[обязательное], title:[Блок схема алгоритма,\ реализующего программное средство], [
 
 #counter(page).update(47)
 
