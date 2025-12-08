@@ -25,6 +25,8 @@
 
 #include("fifth_section.typ")
 
+#include("conclusion.typ")
+
 #bibliography("bibliography.bib")
 
 #stp.appendix(type:[обязательное], title:[Справка о проверке на заимствования], [
