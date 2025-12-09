@@ -559,7 +559,7 @@ __kernel void fft_kernel(
 
 #stp.appendix(type:[обязательное], title:[Графики сравнения \ производительности процессоров], [
 
-#counter(page).update(50)
+#counter(page).update(49)
 
 ])
 
@@ -571,5 +571,6 @@ __kernel void fft_kernel(
 
 #stp.appendix(type:[обязательное], title:[Ведомость курсового проекта], [
 
+#counter(page).update(56)
 
 ])
