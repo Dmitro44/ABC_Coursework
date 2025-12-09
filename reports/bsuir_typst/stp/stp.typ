@@ -369,6 +369,11 @@
       v(1.15em)
     }
 
+    show regex("\\[(\\d+)\\]\\s"): match => {
+      box[[#match.text.slice(1, -2)]]
+      h(0.4em)
+    }
+
     // hacky but works
     show block:  it => {
       par(it.body)
