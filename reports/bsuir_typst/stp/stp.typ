@@ -496,7 +496,7 @@
   let cnt_disp = upper(ru_alph.at(cnt.get().at(0)))
   let atype = args.at("type")
   let aname = args.at("title")
-
+  let aname_outline = args.at("title-outline", default: aname)
 
   show heading: it =>  {
     set text(size:16pt, hyphenate:false)
@@ -514,11 +514,12 @@
 
   {
       show figure: none;
+      show linebreak: " ";
       [#figure(
               kind:"hidden_appendix",
               supplement : [Приложение],
               numbering: (..)=>cnt_disp,
-              caption: [(#atype) #aname])[]<appendix>]
+              caption: [(#atype) #aname_outline])[]<appendix>]
   }
   body
 
