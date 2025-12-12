@@ -370,8 +370,7 @@
     }
 
     show regex("\\[(\\d+)\\]\\s"): match => {
-      box[[#match.text.slice(1, -2)]]
-      h(0.4em)
+      match.text.trim() + h(0.4em)
     }
 
     // hacky but works
