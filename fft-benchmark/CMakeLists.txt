@@ -4,6 +4,9 @@ project(FFTBenchmark VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Find OpenCL
+find_package(OpenCL REQUIRED)
+
 # =============
 # INPUT DATA GENERATOR
 # =============
@@ -13,41 +16,32 @@ add_executable(generate_input
 )
 
 # =============
-# MAIN PROGRAM
+# MAIN PROGRAM (CPU Benchmark)
 # =============
 
-add_executable(fft_benchmark 
+add_executable(fft_benchmark
     src/main.cpp
     src/benchmark.cpp
 )
 
-
 target_include_directories(fft_benchmark PUBLIC src)
 
-
 # =============
-# UNIT TESTS
+# GPU BENCHMARK (OpenCL)
 # =============
 
-
-enable_testing()
-
-include(FetchContent)
-
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/52eb8108c5bdec04579160ae17225d66034bd723.zip
+add_executable(gpu_fft_benchmark
+    src/gpu_benchmark.cpp
 )
 
-FetchContent_MakeAvailable(googletest)
+target_link_libraries(gpu_fft_benchmark OpenCL::OpenCL)
 
-add_executable(run_tests 
-    tests/fft_test.cpp
-    src/benchmark.cpp
+# Copy the OpenCL kernel file to the build directory and define its path for the executable
+set(KERNEL_FILE_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/fft_kernel.cl")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/fft_kernel.cl"
+    "${KERNEL_FILE_DESTINATION}"
+    COPYONLY
 )
+target_compile_definitions(gpu_fft_benchmark PRIVATE KERNEL_FILE_PATH="${KERNEL_FILE_DESTINATION}")
 
-target_link_libraries(run_tests PRIVATE gtest_main)
-
-
-include(GoogleTest)
-gtest_discover_tests(run_tests)

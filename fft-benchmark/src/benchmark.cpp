@@ -9,24 +9,25 @@
 #include <thread>
 #include <vector>
 
+
 // Define the input sizes to be benchmarked
 const std::vector<int> INPUT_SIZES = {
     32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384,
-    32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216
+    32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216,
+    33554432
 };
 
 benchmark::benchmark() = default;
 
 benchmark::~benchmark() = default;
 
-void benchmark::run_single_threaded_benchmark(const string& vendor, const string& timestamp, const string& smt)
+void benchmark::run_single_threaded_benchmark(const string& output_file_path)
 {
-    string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_single_" + smt + ".csv";
-    ofstream results_file_stream(filename);
+    ofstream results_file_stream(output_file_path);
 
     if (!results_file_stream.is_open())
     {
-        cerr << "Failed to create single results file: " << filename << endl;
+        cerr << "Failed to create single results file: " << output_file_path << endl;
         return;
     }
 
@@ -57,17 +58,16 @@ void benchmark::run_single_threaded_benchmark(const string& vendor, const string
     }
 
     results_file_stream.close();
-    cout << "Single-threaded benchmark finished. Results saved to " << filename << endl;
+    cout << "Single-threaded benchmark finished. Results saved to " << output_file_path << endl;
 }
 
-void benchmark::run_multithreaded_benchmark(const string& vendor, const string& timestamp, const string& smt, unsigned int num_threads)
+void benchmark::run_multithreaded_benchmark(const string& output_file_path, unsigned int num_threads)
 {
-    string filename = "../../results/raw_results/results_" + vendor + "_" + timestamp + "_multi_" + to_string(num_threads) + "threads_" + smt + ".csv";
-    ofstream results_file_stream(filename);
+    ofstream results_file_stream(output_file_path);
 
     if (!results_file_stream.is_open())
     {
-        cerr << "Failed to create multi results file: " << filename << endl;
+        cerr << "Failed to create multi results file: " << output_file_path << endl;
         return;
     }
 
@@ -97,8 +97,9 @@ void benchmark::run_multithreaded_benchmark(const string& vendor, const string& 
     }
 
     results_file_stream.close();
-    cout << "Multi-threaded benchmark finished. Results saved to " << filename << endl;
+    cout << "Multi-threaded benchmark finished. Results saved to " << output_file_path << endl;
 }
+
 
 
 unsigned int benchmark::reverse_bits(unsigned int n, unsigned int bits)
@@ -150,44 +151,78 @@ void benchmark::fft_iterative(vector<complex<double>>& data)
 void benchmark::fft_iterative_multithreaded(vector<complex<double>>& data, unsigned int num_threads)
 {
     const size_t N = data.size();
+    if (N < 2) return;
     int logN = 0;
     while ((1 << logN) < N) ++logN;
 
-    for (int i = 0; i < N; ++i)
+    auto worker = [&](unsigned int thread_id, std::barrier<>& sync_point)
     {
-        unsigned int reversed_i = reverse_bits(i, logN);
-        if (i < reversed_i)
+        // 1. Parallel Bit-Reversal
+        // Each thread handles a chunk of the array.
+        const size_t chunk_size = (N + num_threads - 1) / num_threads;
+        const size_t start_index = thread_id * chunk_size;
+        const size_t end_index = std::min(start_index + chunk_size, N);
+
+        for (size_t i = start_index; i < end_index; ++i)
         {
-            swap(data[i], data[reversed_i]);
+            unsigned int reversed_i = reverse_bits(i, logN);
+            if (i < reversed_i)
+            {
+                swap(data[i], data[reversed_i]);
+            }
         }
-    }
 
-    barrier sync_point(num_threads);
+        sync_point.arrive_and_wait();
 
-    auto worker = [&](unsigned int thread_id)
-    {
+        // 2. Parallel FFT Stages
         for (int s = 1; s <= logN; ++s)
         {
             const int m = (1 << s);
+            const complex<double> wm = polar(1.0, -2 * M_PI / m);
             const int num_groups = N / m;
 
-            const int groups_per_thread = (num_groups + num_threads - 1) / num_threads;
-            const int start_group = thread_id * groups_per_thread;
-            const int end_group = std::min(start_group + groups_per_thread, num_groups);
-
-            const complex<double> wm = polar(1.0, -2 * M_PI / m);
-
-            for (int group_idx = start_group; group_idx < end_group; ++group_idx)
+            if (num_groups >= num_threads)
             {
-                const int k = group_idx * m;
-                complex<double> w(1.0, 0);
-                for (int j = 0; j < m / 2; ++j)
+                // Strategy 1: Coarse-grained parallelism for early stages
+                for (int group_idx = thread_id; group_idx < num_groups; group_idx += num_threads)
                 {
-                    complex<double> t = w * data[k + j + m / 2];
-                    complex<double> u = data[k + j];
-                    data[k + j] = u + t;
-                    data[k + j + m / 2] = u - t;
-                    w *= wm;
+                    const int k = group_idx * m;
+                    complex<double> w(1.0, 0);
+                    for (int j = 0; j < m / 2; ++j)
+                    {
+                        complex<double> t = w * data[k + j + m / 2];
+                        complex<double> u = data[k + j];
+                        data[k + j] = u + t;
+                        data[k + j + m / 2] = u - t;
+                        w *= wm;
+                    }
+                }
+            }
+            else
+            {
+                // Strategy 2: Fine-grained parallelism for later stages
+                const int threads_per_group = num_threads / num_groups;
+                const int my_group = thread_id / threads_per_group;
+                const int my_local_thread_id = thread_id % threads_per_group;
+
+                if (my_group < num_groups)
+                {
+                    const int k = my_group * m;
+                    const int butterflies_in_group = m / 2;
+                    const int work_per_local_thread =
+                        (butterflies_in_group + threads_per_group - 1) / threads_per_group;
+                    const int start_j = my_local_thread_id * work_per_local_thread;
+                    const int end_j = std::min(start_j + work_per_local_thread, butterflies_in_group);
+
+                    complex<double> w = pow(wm, start_j);
+                    for (int j = start_j; j < end_j; ++j)
+                    {
+                        complex<double> t = w * data[k + j + m / 2];
+                        complex<double> u = data[k + j];
+                        data[k + j] = u + t;
+                        data[k + j + m / 2] = u - t;
+                        w *= wm;
+                    }
                 }
             }
 
@@ -197,9 +232,10 @@ void benchmark::fft_iterative_multithreaded(vector<complex<double>>& data, unsig
 
     // Run threads
     vector<thread> threads;
+    barrier sync_point(num_threads);
     for (unsigned int i = 0; i < num_threads; ++i)
     {
-        threads.emplace_back(worker, i);
+        threads.emplace_back(worker, i, std::ref(sync_point));
     }
 
     // Wait for all threads

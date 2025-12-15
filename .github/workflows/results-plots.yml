@@ -1,54 +1,35 @@
-name: Generate and Commit Plots
+name: Commit Raw Results
 
 on:
   push:
     branches:
       - test-machine
     paths:
-      - "results/raw_results/**.csv"
+      - "results/raw_results/**/*.csv"
+      - "results/raw_results/**/*.txt"
+      - "results/perf_results/**/*.csv"
+
+permissions:
+  contents: write
 
 jobs:
-  generate-and-commit:
+  commit-raw-results:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout target branch
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          ref: results-plots-auto
 
-      - name: Install Python dependencies
+      - name: Get results from test-machine branch
         run: |
-          python -m pip install --upgrade pip
-          pip install matplotlib pandas numpy
+          git fetch origin test-machine
+          git checkout origin/test-machine -- results/raw_results/ results/perf_results/
 
-      - name: Detect CPU type for commit message
-        id: cpu
-        run: |
-          # Look in the correct directory for the latest result file
-          cpu_type=$(ls -t results/raw_results/ | grep -m 1 -E 'intel|amd' | head -n 1 | grep -oE 'intel|amd' || echo 'unknown')
-          echo "CPU_TYPE=$cpu_type" >> $GITHUB_ENV
-          echo "Detected CPU for commit message: $cpu_type"
-
-      - name: Generate plots
-        id: generate_plots
-        run: |
-          echo "Running plot generation script..."
-          python scripts/generate_plots.py
-
-      - name: Commit results and plots to results-auto branch
+      - name: Commit new results
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Auto: update results and plots (${{ env.CPU_TYPE }})"
-          # Specify the branch to commit to
+          commit_message: "ci: Add latest benchmark results"
           branch: results-plots-auto
-          # Specify the file patterns to commit
-          file_pattern: |
-            results/perf_results/*.csv
-            results/raw_results/*.csv
-            results/plots/*.png
-          # Options to ensure the push succeeds to a different branch
-          repository: .
+          file_pattern: "results/**/*.csv results/**/*.txt"
           push_options: "--force"
