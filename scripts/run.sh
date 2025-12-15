@@ -82,9 +82,14 @@ run_benchmark_set() {
             local NUM_THREADS
             if [ "$SMT_STATE" == "smt_on" ]; then
                 if [ "$CPU_VENDOR" == "intel" ]; then
-                    # Special logic for Intel hybrid CPUs (P-cores + E-cores)
-                    # For X cores, this is (X/2)*2 + (X/2) = 1.5*X threads.
-                    NUM_THREADS=$((NUM_CORES + NUM_CORES / 2))
+                    # Custom logic for user's specific Intel CPU
+                    if [ "$NUM_CORES" -le 6 ]; then
+                        # For 6 cores or less, use 2 threads per core
+                        NUM_THREADS=$((NUM_CORES * 2))
+                    else
+                        # For more than 6 cores, use 1.5 threads per core (e.g., 8 cores -> 12 threads)
+                        NUM_THREADS=$((NUM_CORES + NUM_CORES / 2))
+                    fi
                 else
                     # Standard logic for AMD (and non-hybrid CPUs)
                     NUM_THREADS=$((NUM_CORES * 2))
@@ -109,7 +114,7 @@ run_benchmark_set() {
 
             local RAW_FILE_MULTI="$RAW_OUTPUT_ROOT_DIR/${CPU_VENDOR}_multi_${NUM_CORES}cores_${SMT_STATE}.csv"
             local PERF_FILE_MULTI="$PERF_OUTPUT_ROOT_DIR/perf_${CPU_VENDOR}_multi_${NUM_CORES}cores_${SMT_STATE}.csv"
-            
+
             # Build CPU affinity list
             local CPU_LIST
             if [ "$SMT_STATE" == "smt_on" ]; then
@@ -121,35 +126,32 @@ run_benchmark_set() {
                     # Intel hybrid: P-cores at 0,2,4,6,8 (even), E-cores at 9,10,11,...
                     # When SMT off, available CPUs are: 0,2,4,6,8,9,10,11,...
                     local INTEL_CPUS=""
-                    local p_cores_used=0
-                    local e_cores_used=0
-                    local cpus_assigned=0
-                    # First assign P-cores (even: 0,2,4,6,8)
-                    while [ $cpus_assigned -lt $NUM_THREADS ] && [ $p_cores_used -lt 5 ]; do
+                    local p_core_idx=0
+                    local e_core_idx=0
+                    for ((i = 0; i < NUM_THREADS; i++)); do
                         [ -n "$INTEL_CPUS" ] && INTEL_CPUS+=","
-                        INTEL_CPUS+="$((p_cores_used * 2))"
-                        ((p_cores_used++))
-                        ((cpus_assigned++))
-                    done
-                    # Then assign E-cores (9,10,11,...)
-                    while [ $cpus_assigned -lt $NUM_THREADS ]; do
-                        [ -n "$INTEL_CPUS" ] && INTEL_CPUS+=","
-                        INTEL_CPUS+="$((9 + e_cores_used))"
-                        ((e_cores_used++))
-                        ((cpus_assigned++))
+                        # First, use up to 4 P-cores (0, 2, 4, 6)
+                        if [ $p_core_idx -lt 4 ]; then
+                            INTEL_CPUS+="$((p_core_idx * 2))"
+                            ((++p_core_idx))
+                        # Then, use E-cores (8, 9, 10, 11, ...)
+                        else
+                            INTEL_CPUS+="$((8 + e_core_idx))"
+                            ((++e_core_idx))
+                        fi
                     done
                     CPU_LIST="$INTEL_CPUS"
                 else
                     # AMD: only even CPUs are available (0,2,4,6,...)
                     local EVEN_CPUS=""
-                    for ((i=0; i<NUM_THREADS; i++)); do
+                    for ((i = 0; i < NUM_THREADS; i++)); do
                         [ -n "$EVEN_CPUS" ] && EVEN_CPUS+=","
                         EVEN_CPUS+="$((i * 2))"
                     done
                     CPU_LIST="$EVEN_CPUS"
                 fi
             fi
-            
+
             perf stat -e "$PERF_EVENTS" -o "$PERF_FILE_MULTI" -x, \
                 taskset -c "$CPU_LIST" "$EXECUTABLE_PATH" --mode multi --threads "$NUM_THREADS" --output-file "$RAW_FILE_MULTI"
 
