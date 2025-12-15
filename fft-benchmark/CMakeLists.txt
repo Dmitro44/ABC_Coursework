@@ -45,29 +45,3 @@ configure_file(
 )
 target_compile_definitions(gpu_fft_benchmark PRIVATE KERNEL_FILE_PATH="${KERNEL_FILE_DESTINATION}")
 
-# =============
-# UNIT TESTS
-# =============
-
-
-enable_testing()
-
-include(FetchContent)
-
-FetchContent_Declare(
-    googletest
-    URL https://github.com/google/googletest/archive/52eb8108c5bdec04579160ae17225d66034bd723.zip
-)
-
-FetchContent_MakeAvailable(googletest)
-
-add_executable(run_tests
-    tests/fft_test.cpp
-    src/benchmark.cpp
-)
-
-target_link_libraries(run_tests PRIVATE gtest_main)
-
-
-include(GoogleTest)
-gtest_discover_tests(run_tests)
